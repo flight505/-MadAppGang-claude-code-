@@ -129,13 +129,13 @@ Edit any plugin files:
 
 ```bash
 # Example: Edit an agent
-vim .claude-plugin/plugins/frontend-development/agents/typescript-frontend-dev.md
+vim plugins/frontend-development/agents/typescript-frontend-dev.md
 
 # Example: Edit a command
-vim .claude-plugin/plugins/frontend-development/commands/implement.md
+vim plugins/frontend-development/commands/implement.md
 
 # Example: Update plugin manifest
-vim .claude-plugin/plugins/frontend-development/plugin.json
+vim plugins/frontend-development/plugin.json
 ```
 
 ### 2. Reload Plugin in Claude Code
@@ -190,7 +190,7 @@ Check that plugin is loaded correctly:
 
 ```bash
 # Create new agent file
-touch .claude-plugin/plugins/frontend-development/agents/test-agent.md
+touch plugins/frontend-development/agents/test-agent.md
 ```
 
 **2. Add agent frontmatter:**
@@ -249,7 +249,7 @@ Provide a concise summary of findings.
 **1. Create a test command:**
 
 ```bash
-touch .claude-plugin/plugins/frontend-development/commands/test-command.md
+touch plugins/frontend-development/commands/test-command.md
 ```
 
 **2. Add command content:**
@@ -322,7 +322,7 @@ Provide a summary of the current project structure.
 **2. Create mock server (optional):**
 
 ```bash
-mkdir -p .claude-plugin/plugins/frontend-development/test
+mkdir -p plugins/frontend-development/test
 ```
 
 ```javascript
@@ -378,7 +378,7 @@ console.log('CLAUDE_PLUGIN_ROOT:', process.env.CLAUDE_PLUGIN_ROOT);
 cat .claude-plugin/marketplace.json | python -m json.tool
 
 # Validate plugin.json
-cat .claude-plugin/plugins/frontend-development/plugin.json | python -m json.tool
+cat plugins/frontend-development/plugin.json | python -m json.tool
 ```
 
 ### Check File Paths
@@ -427,7 +427,7 @@ Ensure all paths in `plugin.json` are relative and correct:
 # In your MCP server code, log the variable:
 console.log('CLAUDE_PLUGIN_ROOT:', process.env.CLAUDE_PLUGIN_ROOT);
 
-# Should output: /Users/jack/mag/claude-code/.claude-plugin/plugins/frontend-development
+# Should output: /Users/jack/mag/claude-code/plugins/frontend-development
 ```
 
 ---
@@ -518,13 +518,13 @@ Compare behavior to ensure changes work as expected.
 2. **Validate JSON syntax:**
    ```bash
    cat .claude-plugin/marketplace.json | python -m json.tool
-   cat .claude-plugin/plugins/frontend-development/plugin.json | python -m json.tool
+   cat plugins/frontend-development/plugin.json | python -m json.tool
    ```
 
 3. **Check file permissions:**
    ```bash
    ls -la .claude-plugin/marketplace.json
-   ls -la .claude-plugin/plugins/frontend-development/plugin.json
+   ls -la plugins/frontend-development/plugin.json
    ```
 
 4. **Reinstall plugin:**
@@ -573,7 +573,7 @@ Compare behavior to ensure changes work as expected.
 
 1. **Check MCP configuration:**
    ```bash
-   cat .claude-plugin/plugins/frontend-development/plugin.json | grep -A 10 "mcpServers"
+   cat plugins/frontend-development/plugin.json | grep -A 10 "mcpServers"
    ```
 
 2. **Verify command exists:**
@@ -588,7 +588,7 @@ Compare behavior to ensure changes work as expected.
 3. **Test command manually:**
    ```bash
    # Navigate to plugin directory
-   cd .claude-plugin/plugins/frontend-development
+   cd plugins/frontend-development
 
    # Test command
    npx -y @modelcontextprotocol/server-postgres
@@ -665,7 +665,7 @@ If making significant changes, update version numbers:
 }
 ```
 
-**In `.claude-plugin/plugins/frontend-development/plugin.json`:**
+**In `plugins/frontend-development/plugin.json`:**
 ```json
 {
   "name": "frontend-development",
@@ -749,7 +749,7 @@ git push --tags
 
 # Validation
 cat .claude-plugin/marketplace.json | python -m json.tool
-cat .claude-plugin/plugins/frontend-development/plugin.json | python -m json.tool
+cat plugins/frontend-development/plugin.json | python -m json.tool
 
 # Git
 git status
@@ -768,10 +768,10 @@ git push origin main
 /Users/jack/mag/claude-code/.claude-plugin/marketplace.json
 
 # Plugin root
-/Users/jack/mag/claude-code/.claude-plugin/plugins/frontend-development
+/Users/jack/mag/claude-code/plugins/frontend-development
 
 # Plugin manifest
-/Users/jack/mag/claude-code/.claude-plugin/plugins/frontend-development/plugin.json
+/Users/jack/mag/claude-code/plugins/frontend-development/plugin.json
 ```
 
 ---

@@ -52,22 +52,26 @@ claude-code/
 ├── .env.example              # Environment template
 ├── LICENSE                   # MIT
 ├── .gitignore               # Excludes secrets
-├── ai-docs/                 # Detailed documentation
+├── docs/                    # User documentation
+│   ├── frontend-development.md
+│   └── local-development.md
+├── ai-docs/                 # Technical documentation
 │   ├── TEAM_CONFIG_ARCHITECTURE.md
 │   ├── DYNAMIC_MCP_GUIDE.md
 │   ├── IMPROVEMENTS_SUMMARY.md
 │   ├── COMPLETE_PLUGIN_SUMMARY.md
 │   └── FINAL_SUMMARY.md
-└── .claude-plugin/
-    ├── marketplace.json
-    └── plugins/
-        └── frontend-development/
-            ├── plugin.json
-            ├── DEPENDENCIES.md
-            ├── agents/      (8 agents)
-            ├── commands/    (5 commands)
-            ├── skills/      (2 skills)
-            └── mcp-servers/
+├── .claude-plugin/
+│   └── marketplace.json
+└── plugins/
+    └── frontend-development/
+        ├── plugin.json
+        ├── DEPENDENCIES.md
+        ├── README.md
+        ├── agents/          (8 agents)
+        ├── commands/        (5 commands)
+        ├── skills/          (2 skills)
+        └── mcp-servers/
 ```
 
 ## Important Files
@@ -79,12 +83,12 @@ claude-code/
 
 ### For Maintainers
 - `.claude-plugin/marketplace.json` - Marketplace configuration
-- `.claude-plugin/plugins/frontend-development/plugin.json` - Plugin manifest
+- `plugins/frontend-development/plugin.json` - Plugin manifest
 - `ai-docs/DYNAMIC_MCP_GUIDE.md` - MCP configuration patterns
 
 ### For Contributors
 - `ai-docs/COMPLETE_PLUGIN_SUMMARY.md` - Complete reference
-- `.claude-plugin/plugins/frontend-development/DEPENDENCIES.md` - Dependencies
+- `plugins/frontend-development/DEPENDENCIES.md` - Dependencies
 
 ## Commands Available
 

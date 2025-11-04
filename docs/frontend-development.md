@@ -864,7 +864,7 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom
 - **Documentation:** [Main README](../README.md)
 - **Issues:** [GitHub Issues](https://github.com/madappgang/claude-plugins/issues)
 - **Email:** i@madappgang.com
-- **Dependencies:** [DEPENDENCIES.md](../.claude-plugin/plugins/frontend-development/DEPENDENCIES.md)
+- **Dependencies:** [DEPENDENCIES.md](../plugins/frontend-development/DEPENDENCIES.md)
 
 ---
 

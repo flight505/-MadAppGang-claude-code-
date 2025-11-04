@@ -186,8 +186,8 @@ Read these:
 ## 🔗 Related Documentation
 
 ### In Plugin Directory
-- `.claude-plugin/plugins/frontend-development/DEPENDENCIES.md` - Dependencies guide
-- `.claude-plugin/plugins/frontend-development/commands/CONFIGURE_MCP_FLOW.md` - Configuration flow
+- `plugins/frontend-development/DEPENDENCIES.md` - Dependencies guide
+- `plugins/frontend-development/commands/CONFIGURE_MCP_FLOW.md` - Configuration flow
 
 ### In Root Directory
 - `README.md` - Main documentation and quick start

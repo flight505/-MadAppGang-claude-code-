@@ -249,7 +249,7 @@ The complete guide includes:
 1. **Create plugin directory structure:**
 
 ```bash
-mkdir -p .claude-plugin/plugins/your-plugin-name/{agents,commands,skills,mcp-servers}
+mkdir -p plugins/your-plugin-name/{agents,commands,skills,mcp-servers}
 ```
 
 2. **Add your artifacts:**
@@ -462,17 +462,17 @@ We welcome contributions from the community! Here's how to contribute:
 
 ```
 .claude-plugin/
-├── marketplace.json                    # Marketplace configuration
-└── plugins/
-    ├── frontend-development/          # Plugin directory
-    │   ├── plugin.json               # Plugin manifest
-    │   ├── agents/                   # Specialized agents
-    │   ├── commands/                 # Slash commands
-    │   ├── skills/                   # Workflow skills
-    │   └── mcp-servers/              # MCP server configurations
-    │       └── mcp-config.json
-    └── your-plugin/
-        └── ...
+└── marketplace.json                    # Marketplace configuration
+plugins/
+├── frontend-development/               # Plugin directory
+│   ├── plugin.json                    # Plugin manifest
+│   ├── agents/                        # Specialized agents
+│   ├── commands/                      # Slash commands
+│   ├── skills/                        # Workflow skills
+│   └── mcp-servers/                   # MCP server configurations
+│       └── mcp-config.example.json
+└── your-plugin/
+    └── ...
 ```
 
 ### Marketplace Schema
@@ -716,8 +716,8 @@ For technical details and architecture, see the **[ai-docs](./ai-docs/)** direct
 - **[FINAL_SUMMARY.md](./ai-docs/FINAL_SUMMARY.md)** - Project overview and statistics
 
 #### Plugin-Specific Technical Docs
-- **[DEPENDENCIES.md](./.claude-plugin/plugins/frontend-development/DEPENDENCIES.md)** - All dependencies and environment variables
-- **[CONFIGURE_MCP_FLOW.md](./.claude-plugin/plugins/frontend-development/commands/CONFIGURE_MCP_FLOW.md)** - Configuration flow diagram
+- **[DEPENDENCIES.md](./plugins/frontend-development/DEPENDENCIES.md)** - All dependencies and environment variables
+- **[CONFIGURE_MCP_FLOW.md](./plugins/frontend-development/commands/CONFIGURE_MCP_FLOW.md)** - Configuration flow diagram
 
 ---
 

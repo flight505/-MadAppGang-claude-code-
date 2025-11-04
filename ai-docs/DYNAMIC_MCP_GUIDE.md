@@ -442,7 +442,7 @@ npx -y @apidog/mcp-server --project-id abc123 --token secret
 
 ## Additional Resources
 
-- [Plugin Example: frontend-development](./.claude-plugin/plugins/frontend-development)
+- [Plugin Example: frontend-development](./plugins/frontend-development)
 - [Setup Command Example](./commands/setup-apidog.md)
 - [MCP Config Examples](./mcp-servers/mcp-config.example.json)
 - [Claude Code Docs](https://docs.claude.com/en/docs/claude-code/plugins)
