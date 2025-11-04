@@ -1,6 +1,6 @@
 {
 	"name": "frontend",
-	"version": "2.0.1",
+	"version": "2.1.0",
 	"description": "Comprehensive frontend development toolkit with TypeScript, React, Vite, TanStack Router & Query support. Role-based agents for architecture, development, code review, testing, and UI validation. Includes Figma Make integration for importing working prototypes.",
 	"author": {
 		"name": "Jack Rudenko",
@@ -32,7 +32,6 @@
 	"commands": [
 		"./commands/implement.md",
 		"./commands/import-figma.md",
-		"./commands/configure-mcp.md",
 		"./commands/api-docs.md",
 		"./commands/cleanup-artifacts.md"
 	],
@@ -40,5 +39,5 @@
 		"./skills/browser-debugger",
 		"./skills/api-spec-analyzer"
 	],
-	"mcpServers": "./mcp-servers/mcp-config.example.json"
+	"mcpServers": "./mcp-servers/mcp-config.json"
 }

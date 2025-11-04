@@ -87,56 +87,59 @@ npm install -g @anthropic-ai/codex-cli
 
 ## Environment Variables
 
-### Required Environment Variables
+### MCP Server Configuration
 
-These must be set by each developer:
+The plugin includes three MCP servers that **auto-load** when enabled. Configuration is done via environment variables in `.claude/settings.json`.
+
+#### Configuration Pattern
+
+**Personal secrets** → `.claude/settings.local.json` (gitignored)
+**Project values** → `.claude/settings.json` (committed)
 
 #### 1. Apidog MCP Server
 
-**Variable:** `APIDOG_API_TOKEN`
-**Purpose:** Personal API token for Apidog access
-**Get it from:** Apidog Settings → API Tokens
+**Required:**
+- `APIDOG_API_TOKEN` (secret, personal) - Your Apidog API token
+- `APIDOG_PROJECT_ID` (project-specific, shared) - Team's project ID
 
-```bash
-export APIDOG_API_TOKEN="your-personal-apidog-token"
+**Get your token:** https://apidog.com/settings/tokens
+
+**Setup:**
+
+Personal `.claude/settings.local.json`:
+```json
+{
+  "env": {
+    "APIDOG_API_TOKEN": "your-personal-apidog-token"
+  }
+}
 ```
 
-**Verify:**
-```bash
-echo $APIDOG_API_TOKEN
-npx -y @apidog/mcp-server --token $APIDOG_API_TOKEN --test-connection
+Project `.claude/settings.json`:
+```json
+{
+  "env": {
+    "APIDOG_PROJECT_ID": "your-team-project-id"
+  }
+}
 ```
 
 #### 2. Figma MCP Server
 
-**Variable:** `FIGMA_ACCESS_TOKEN`
-**Purpose:** Personal access token for Figma API
-**Get it from:** Figma Account Settings → Personal Access Tokens
+**Required:**
+- `FIGMA_ACCESS_TOKEN` (secret, personal) - Your Figma access token
 
-```bash
-export FIGMA_ACCESS_TOKEN="your-personal-figma-token"
-```
+**Get your token:** https://www.figma.com/developers/api#access-tokens
 
-**Verify:**
-```bash
-echo $FIGMA_ACCESS_TOKEN
-npx -y @modelcontextprotocol/server-figma --token $FIGMA_ACCESS_TOKEN
-```
+**Setup:**
 
-#### 3. GitHub MCP Server (Optional)
-
-**Variable:** `GITHUB_PERSONAL_ACCESS_TOKEN`
-**Purpose:** Personal access token for GitHub API
-**Get it from:** GitHub Settings → Developer Settings → Personal Access Tokens
-
-```bash
-export GITHUB_PERSONAL_ACCESS_TOKEN="ghp_your-token-here"
-```
-
-**Verify:**
-```bash
-echo $GITHUB_PERSONAL_ACCESS_TOKEN
-curl -H "Authorization: token $GITHUB_PERSONAL_ACCESS_TOKEN" https://api.github.com/user
+Personal `.claude/settings.local.json`:
+```json
+{
+  "env": {
+    "FIGMA_ACCESS_TOKEN": "your-personal-figma-token"
+  }
+}
 ```
 
 ### Optional Environment Variables
@@ -162,62 +165,48 @@ export CHROME_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Go
 export CODEX_API_KEY="your-codex-api-key"
 ```
 
-## Project-Specific Configuration
+## Quick Setup Example
 
-These go in `.claude/settings.json` (committed to git):
+**Recommended: Personal tokens + Project configuration**
 
+Project `.claude/settings.json` (committed to git):
 ```json
 {
-  "mcpServers": {
-    "apidog": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@apidog/mcp-server",
-        "--project-id",
-        "2847593"              // ← Project ID (shareable, committed)
-      ],
-      "env": {
-        "APIDOG_API_TOKEN": "${APIDOG_API_TOKEN}"  // ← Secret (from env)
-      }
-    },
-    "figma": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-figma"],
-      "env": {
-        "FIGMA_ACCESS_TOKEN": "${FIGMA_ACCESS_TOKEN}"
-      }
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
-      }
-    },
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-chrome-devtools"]
-    }
+  "env": {
+    "APIDOG_PROJECT_ID": "your-team-project-id"
   },
-  "projectConfig": {
-    "figmaFileUrl": "https://www.figma.com/file/abc123/project-name",
-    "apidogProjectId": "2847593",
-    "apidogProjectName": "My API Project"
+  "enabledPlugins": {
+    "frontend@mag-claude-plugins": true
   }
 }
 ```
 
+Personal `.claude/settings.local.json` (gitignored):
+```json
+{
+  "env": {
+    "APIDOG_API_TOKEN": "your-personal-token",
+    "FIGMA_ACCESS_TOKEN": "your-figma-token"
+  }
+}
+```
+
+**That's it!** MCP servers auto-load from the plugin when you have the required environment variables set.
+
 ## MCP Servers
 
-### Servers Used by This Plugin
+### Auto-Loaded by Plugin
 
-| MCP Server | Required By | Install Command | Env Vars |
-|------------|-------------|----------------|----------|
-| @apidog/mcp-server | api-analyst, /api-docs | `npx -y @apidog/mcp-server` | APIDOG_API_TOKEN |
-| @modelcontextprotocol/server-figma | /import-figma | `npx -y @modelcontextprotocol/server-figma` | FIGMA_ACCESS_TOKEN |
-| @modelcontextprotocol/server-chrome-devtools | tester, browser-debugger | `npx -y @modelcontextprotocol/server-chrome-devtools` | None |
-| @modelcontextprotocol/server-github | Optional - for GitHub operations | `npx -y @modelcontextprotocol/server-github` | GITHUB_PERSONAL_ACCESS_TOKEN |
+These MCP servers are included with the plugin and **automatically start** when you enable the plugin:
+
+| MCP Server | Required By | Env Vars Required |
+|------------|-------------|-------------------|
+| **apidog** | api-analyst, /api-docs | APIDOG_API_TOKEN, APIDOG_PROJECT_ID |
+| **figma** | /import-figma | FIGMA_ACCESS_TOKEN |
+
+**No manual installation needed!** The plugin handles MCP server configuration automatically.
+
+**Setup:** Add environment variables to `.claude/settings.json` or `.claude/settings.local.json` (see Quick Setup Example above).
 
 **Note:** MCP servers are installed on-demand by `npx` when first used. No pre-installation required.
 

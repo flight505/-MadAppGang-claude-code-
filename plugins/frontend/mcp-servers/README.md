@@ -1,350 +1,282 @@
-# MCP Server Configuration for Frontend Development Plugin
+# MCP Server Configuration
 
-This directory contains MCP server configurations that can be included in your plugin.
+The frontend plugin includes two MCP servers that auto-load when the plugin is enabled:
 
-## Dynamic Configuration Patterns
+- **Apidog** - API documentation and endpoint management
+- **Figma** - Design file access and component import
 
-### Approach 1: Environment Variables (Recommended)
+## How It Works
 
-Use environment variables that users set per-project in their `.claude/settings.json`:
+### 1. MCP Servers Auto-Load
 
-**Plugin's mcp-config.json:**
-```json
-{
-  "apidog": {
-    "command": "npx",
-    "args": [
-      "-y",
-      "@apidog/mcp-server",
-      "--project-id",
-      "${APIDOG_PROJECT_ID}",
-      "--token",
-      "${APIDOG_API_TOKEN}"
-    ]
-  }
-}
-```
+When you enable the plugin, MCP servers automatically start using environment variables from your `.claude/settings.json` file.
 
-**User's project `.claude/settings.json`:**
-```json
-{
-  "env": {
-    "APIDOG_PROJECT_ID": "your-actual-project-id",
-    "APIDOG_API_TOKEN": "your-api-token"
-  }
-}
-```
+### 2. Two Types of Configuration
 
-**Pros:**
-- ✅ Clean separation of plugin and project config
-- ✅ Easy to switch between projects
-- ✅ Secrets stay in project-specific settings
-- ✅ Works with any MCP server
+**Secrets (Personal):**
+- API tokens, access tokens, personal credentials
+- Store in `.env` file or `.claude/settings.local.json` (gitignored)
+- Each developer has their own
 
-### Approach 2: Plugin Configuration Override
+**Project-Specific (Shared):**
+- Project IDs, URLs, team identifiers
+- Store in `.claude/settings.json` (committed to git)
+- Whole team uses the same values
 
-Allow users to override MCP server config in their project settings:
+## Quick Setup
 
-**Plugin's mcp-config.json (provides defaults):**
-```json
-{
-  "apidog": {
-    "command": "npx",
-    "args": ["-y", "@apidog/mcp-server"],
-    "env": {
-      "APIDOG_PROJECT_ID": "${APIDOG_PROJECT_ID}",
-      "APIDOG_API_TOKEN": "${APIDOG_API_TOKEN}"
-    }
-  }
-}
-```
+### Step 1: Add Personal Secrets
 
-**User's project `.claude/settings.json` (overrides with specifics):**
-```json
-{
-  "mcpServers": {
-    "apidog": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@apidog/mcp-server",
-        "--project-id",
-        "abc123xyz",
-        "--token",
-        "secret-token-here"
-      ]
-    }
-  }
-}
-```
-
-**Pros:**
-- ✅ Plugin provides sensible defaults
-- ✅ Full control for users to customize
-- ✅ Can override any aspect of MCP config
-
-### Approach 3: Config File Per Project
-
-Use a project-specific config file that MCP server reads:
-
-**Plugin's mcp-config.json:**
-```json
-{
-  "apidog": {
-    "command": "npx",
-    "args": [
-      "-y",
-      "@apidog/mcp-server",
-      "--config",
-      "${PROJECT_ROOT}/.apidog/config.json"
-    ]
-  }
-}
-```
-
-**User creates `.apidog/config.json` in their project:**
-```json
-{
-  "projectId": "your-project-id",
-  "apiToken": "your-token"
-}
-```
-
-**Pros:**
-- ✅ Config lives with project code
-- ✅ Can be git-ignored for secrets
-- ✅ Easy to version control non-secret config
-
-### Approach 4: Interactive Setup (Advanced)
-
-Create a custom command or skill that helps users configure the MCP server:
-
-**Plugin command: `/setup-apidog`**
-
-```markdown
----
-description: Configure Apidog MCP server for this project
-allowed-tools: AskUserQuestion, Read, Write, Edit
----
-
-# Setup Apidog MCP Server
-
-This command helps you configure the Apidog MCP server for your project.
-
-## Workflow
-
-1. **Ask for project details:**
-   - Apidog Project ID
-   - API Token (or prompt to create one)
-   - Team ID (if applicable)
-
-2. **Store configuration:**
-   - Option A: Write to `.claude/settings.json` (env vars)
-   - Option B: Create `.apidog/config.json` in project root
-   - Option C: Update global MCP config with project-specific values
-
-3. **Verify connection:**
-   - Test MCP server connection
-   - Verify project ID is valid
-   - Confirm API access works
-
-4. **Provide usage instructions:**
-   - How to use Apidog tools in Claude Code
-   - Common workflows (fetch API docs, import endpoints, etc.)
-```
-
-**Pros:**
-- ✅ Guided setup for users
-- ✅ Validates configuration
-- ✅ Great UX for non-technical users
-
-## Recommended Pattern: Environment Variables + Setup Command
-
-**Best practice combines multiple approaches:**
-
-1. **Plugin provides template** with environment variable placeholders
-2. **Setup command** (`/setup-apidog`) guides users through configuration
-3. **Setup command writes** to `.claude/settings.json`:
+Create or edit `.claude/settings.local.json` in your project:
 
 ```json
 {
   "env": {
-    "APIDOG_PROJECT_ID": "user-provided-id",
-    "APIDOG_API_TOKEN": "user-provided-token"
+    "APIDOG_API_TOKEN": "your-personal-token-here",
+    "FIGMA_ACCESS_TOKEN": "your-figma-token-here"
   }
 }
 ```
 
-4. **Plugin's MCP config** reads from environment:
+**Note:** This file should be gitignored so tokens stay private.
+
+### Step 2: Add Project Configuration
+
+Add to `.claude/settings.json` (this gets committed):
 
 ```json
 {
-  "apidog": {
-    "command": "npx",
-    "args": [
-      "-y",
-      "@apidog/mcp-server",
-      "--project-id",
-      "${APIDOG_PROJECT_ID}",
-      "--token",
-      "${APIDOG_API_TOKEN}"
-    ],
-    "env": {
-      "APIDOG_PROJECT_ID": "${APIDOG_PROJECT_ID}",
-      "APIDOG_API_TOKEN": "${APIDOG_API_TOKEN}"
-    }
+  "env": {
+    "APIDOG_PROJECT_ID": "your-team-project-id"
+  },
+  "enabledPlugins": {
+    "frontend@mag-claude-plugins": true
   }
 }
 ```
 
-## Example: Complete Apidog MCP Integration
+### Step 3: Verify MCP Servers
 
-### Plugin Structure
+Run `/mcp` to see connected servers. You should see:
+- ✅ apidog (if APIDOG_API_TOKEN and APIDOG_PROJECT_ID are set)
+- ✅ figma (if FIGMA_ACCESS_TOKEN is set)
+
+## Interactive Setup
+
+If you haven't configured values yet, skills and agents will ask for them when needed:
 
 ```
-frontend-development/
-├── mcp-servers/
-│   ├── mcp-config.json          # MCP server configurations
-│   └── README.md                # This file
-├── commands/
-│   └── setup-apidog.md          # Setup command
-└── plugin.json
+User: Import the LoginForm component from Figma
+Claude: I need your Figma access token to import components. Would you like to configure it now?
+User: Yes
+Claude: [Asks for token, validates it, saves to settings.local.json]
+Claude: ✅ Figma configured! Now importing LoginForm...
 ```
 
-### mcp-config.json
+The configuration is saved, so you won't be asked again.
 
+## Environment Variables Reference
+
+### Apidog
+
+**Required:**
+- `APIDOG_API_TOKEN` (secret, personal) - Your Apidog API token
+- `APIDOG_PROJECT_ID` (project-specific, shared) - Team's Apidog project ID
+
+**Optional:**
+- `APIDOG_BASE_URL` - Custom API URL for self-hosted Apidog
+
+**Get your token:** https://apidog.com/settings/tokens
+
+### Figma
+
+**Required:**
+- `FIGMA_ACCESS_TOKEN` (secret, personal) - Your Figma personal access token
+
+**Get your token:** https://www.figma.com/developers/api#access-tokens
+
+## Configuration Patterns
+
+### Pattern 1: Team Project + Personal Tokens (Recommended)
+
+**Project `.claude/settings.json` (committed):**
 ```json
 {
-  "apidog": {
-    "command": "npx",
-    "args": [
-      "-y",
-      "@apidog/mcp-server"
-    ],
-    "env": {
-      "APIDOG_PROJECT_ID": "${APIDOG_PROJECT_ID}",
-      "APIDOG_API_TOKEN": "${APIDOG_API_TOKEN}",
-      "APIDOG_BASE_URL": "${APIDOG_BASE_URL:-https://api.apidog.com}"
-    }
+  "env": {
+    "APIDOG_PROJECT_ID": "team-project-123"
+  },
+  "enabledPlugins": {
+    "frontend@mag-claude-plugins": true
   }
 }
 ```
 
-**Note:** `${VAR:-default}` syntax provides default value if VAR is not set.
+**Personal `.claude/settings.local.json` (gitignored):**
+```json
+{
+  "env": {
+    "APIDOG_API_TOKEN": "personal-token-abc",
+    "FIGMA_ACCESS_TOKEN": "figma-token-xyz"
+  }
+}
+```
 
-### User Setup Flow
+**Why this works:**
+- ✅ Project configuration shared across team
+- ✅ Personal tokens stay private
+- ✅ No secrets in git
+- ✅ Easy onboarding for new team members
 
-**Step 1: Install plugin**
+### Pattern 2: Global Personal Tokens
+
+**Global `~/.claude/settings.json`:**
+```json
+{
+  "env": {
+    "APIDOG_API_TOKEN": "personal-token-abc",
+    "FIGMA_ACCESS_TOKEN": "figma-token-xyz"
+  }
+}
+```
+
+**Project `.claude/settings.json`:**
+```json
+{
+  "env": {
+    "APIDOG_PROJECT_ID": "team-project-123"
+  }
+}
+```
+
+**Why this works:**
+- ✅ Tokens available in all projects
+- ✅ Set once, use everywhere
+- ✅ Project still configures project-specific values
+
+### Pattern 3: Environment File
+
+**Create `.env` in project root:**
 ```bash
-/plugin install frontend-development@mag-claude-plugins
+APIDOG_API_TOKEN=personal-token-abc
+APIDOG_PROJECT_ID=team-project-123
+FIGMA_ACCESS_TOKEN=figma-token-xyz
 ```
 
-**Step 2: Run setup**
-```bash
-/setup-apidog
+**Add to `.gitignore`:**
+```
+.env
 ```
 
-**Step 3: Claude prompts for:**
-- Apidog Project ID
-- API Token
-- (Optional) Team ID
-- (Optional) Base URL for self-hosted
-
-**Step 4: Setup command writes to `.claude/settings.json`:**
+**Load in `.claude/settings.json`:**
 ```json
 {
   "env": {
-    "APIDOG_PROJECT_ID": "abc123",
-    "APIDOG_API_TOKEN": "secret-token",
-    "APIDOG_TEAM_ID": "team-456"
+    "APIDOG_API_TOKEN": "${APIDOG_API_TOKEN}",
+    "APIDOG_PROJECT_ID": "${APIDOG_PROJECT_ID}",
+    "FIGMA_ACCESS_TOKEN": "${FIGMA_ACCESS_TOKEN}"
   }
 }
 ```
 
-**Step 5: MCP server is ready**
-```
-✅ Apidog MCP server configured successfully!
+## Troubleshooting
 
-Available tools:
-- apidog_get_project
-- apidog_list_apis
-- apidog_get_api_definition
-- apidog_import_endpoint
+### MCP Server Not Appearing in `/mcp`
 
-Try: "Fetch API documentation from Apidog for the User API"
+**Check 1: Environment variables set?**
+```bash
+# In Claude Code
+/config
+
+# Look for env variables in settings
 ```
+
+**Check 2: Plugin enabled?**
+```bash
+/plugin list
+
+# Should show: frontend@mag-claude-plugins ✓ enabled
+```
+
+**Check 3: MCP server logs**
+```bash
+# Check Claude Code logs for MCP errors
+# Usually in ~/.claude/logs/
+```
+
+### "Connection Failed" Error
+
+**Apidog:**
+- Verify `APIDOG_API_TOKEN` is correct
+- Verify `APIDOG_PROJECT_ID` exists and you have access
+- Check https://apidog.com to confirm project is accessible
+
+**Figma:**
+- Verify `FIGMA_ACCESS_TOKEN` is valid
+- Token might have expired - generate new one
+- Check token has correct scopes
+
+### MCP Server Starts But No Tools Available
+
+This usually means the server started but configuration is incomplete:
+- For Apidog: Need both token AND project ID
+- For Figma: Need valid access token
 
 ## Security Best Practices
 
 ### DO ✅
 
-- Store API tokens in environment variables
-- Add `.claude/settings.local.json` to `.gitignore`
-- Use project-specific `.claude/settings.json` for non-secret config
-- Provide clear setup instructions
-- Validate tokens before saving
+- Store secrets in `.claude/settings.local.json` (gitignored)
+- Store project IDs in `.claude/settings.json` (committed)
+- Use personal access tokens, not shared team tokens
+- Rotate tokens regularly
+- Use tokens with minimal required scopes
 
 ### DON'T ❌
 
-- Hard-code API tokens in plugin files
-- Commit secrets to git
-- Use global settings for project-specific IDs
-- Skip token validation
+- Commit tokens to git
+- Share tokens between team members
+- Use admin/full-access tokens when limited scope works
+- Store tokens in global settings for project-specific use
 
-## Testing Your MCP Server Configuration
+## Example: Complete Setup for Team
 
-1. **Test environment variable resolution:**
-```bash
-echo $APIDOG_PROJECT_ID
-```
+**1. Team lead sets up project**
 
-2. **Test MCP server directly:**
-```bash
-npx -y @apidog/mcp-server --project-id your-id --token your-token
-```
-
-3. **Verify in Claude Code:**
-```
-User: "List available MCP tools"
-Claude should show apidog tools if configured correctly
-```
-
-## Troubleshooting
-
-### Issue: Environment variables not resolving
-
-**Solution:** Ensure variables are set in `.claude/settings.json`:
+`.claude/settings.json`:
 ```json
 {
   "env": {
-    "APIDOG_PROJECT_ID": "your-id"
+    "APIDOG_PROJECT_ID": "abc123xyz"
+  },
+  "enabledPlugins": {
+    "frontend@mag-claude-plugins": true
   }
 }
 ```
 
-### Issue: MCP server not starting
+`.gitignore`:
+```
+.claude/settings.local.json
+.env
+```
 
-**Solution:** Check MCP server logs and verify:
-- `npx` is available
-- MCP server package installs correctly
-- All required env vars are set
+Commit and push.
 
-### Issue: Project ID not being passed
+**2. Team members clone and add personal tokens**
 
-**Solution:** Verify command args in mcp-config.json:
+Each developer creates `.claude/settings.local.json`:
 ```json
 {
-  "args": [
-    "-y",
-    "@apidog/mcp-server",
-    "--project-id",
-    "${APIDOG_PROJECT_ID}"  // ← Make sure this is here
-  ]
+  "env": {
+    "APIDOG_API_TOKEN": "their-personal-token",
+    "FIGMA_ACCESS_TOKEN": "their-figma-token"
+  }
 }
 ```
 
-## Additional Resources
+**3. Everyone has working MCP servers**
 
-- [Claude Code Plugin Documentation](https://docs.claude.com/en/docs/claude-code/plugins)
-- [MCP Server Protocol](https://modelcontextprotocol.io)
-- [Environment Variables in Plugins](https://docs.claude.com/en/docs/claude-code/plugins-reference#environment-variables)
+- ✅ Shared project configuration
+- ✅ Personal tokens stay private
+- ✅ No secrets in git
+- ✅ Consistent experience across team

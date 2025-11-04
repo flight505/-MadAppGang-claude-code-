@@ -12,11 +12,11 @@
 A complete Claude Code plugin marketplace with enterprise-level architecture:
 
 - **Plugin Marketplace** (`mag-claude-plugins`)
-- **Frontend Development Plugin** (v2.0.1)
+- **Frontend Development Plugin** (v2.1.0)
   - 8 Specialized Agents
-  - 5 Slash Commands
+  - 4 Slash Commands
   - 2 Skills
-  - 4 MCP Server Configurations
+  - 2 MCP Servers (auto-configured)
 
 ## Key Architecture Decisions
 
@@ -233,4 +233,4 @@ Include marketplace in project settings (requires folder trust):
 
 **Maintained by:** Jack Rudenko @ MadAppGang
 **Last Updated:** November 4, 2024
-**Version:** 2.0.1
+**Version:** 2.1.0
