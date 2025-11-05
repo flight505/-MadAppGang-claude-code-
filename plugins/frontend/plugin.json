@@ -1,7 +1,7 @@
 {
 	"name": "frontend",
-	"version": "2.2.0",
-	"description": "Comprehensive frontend development toolkit with TypeScript, React, Vite, TanStack Router & Query support. Role-based agents for architecture, development, code review, testing, and UI validation. Includes Figma Make integration for importing working prototypes.",
+	"version": "2.3.0",
+	"description": "Comprehensive frontend development toolkit with TypeScript, React, Vite, TanStack Router & Query support. Role-based agents for architecture, development, code review, testing, and pixel-perfect UI implementation with design fidelity validation. Includes specialized Designer and UI Developer agents with Tailwind CSS 4 best practices (2025).",
 	"author": {
 		"name": "Jack Rudenko",
 		"email": "i@madappgang.com",
@@ -28,10 +28,13 @@
 		"./agents/cleaner.md",
 		"./agents/reviewer.md",
 		"./agents/codex-reviewer.md",
-		"./agents/ui-validator.md"
+		"./agents/designer.md",
+		"./agents/ui-developer.md",
+		"./agents/ui-developer-codex.md"
 	],
 	"commands": [
 		"./commands/implement.md",
+		"./commands/implement-ui.md",
 		"./commands/import-figma.md",
 		"./commands/api-docs.md",
 		"./commands/cleanup-artifacts.md",
@@ -39,7 +42,8 @@
 	],
 	"skills": [
 		"./skills/browser-debugger",
-		"./skills/api-spec-analyzer"
+		"./skills/api-spec-analyzer",
+		"./skills/ui-implementer"
 	],
 	"mcpServers": "./mcp-servers/mcp-config.json"
 }

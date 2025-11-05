@@ -1,10 +1,10 @@
 ---
-description: Multi-agent orchestrated UI validation with iterative fixes and optional third-party review
+description: Multi-agent orchestrated UI design validation with iterative fixes and optional Codex expert review
 ---
 
 ## Task
 
-**Multi-agent orchestration command** - coordinate between ui-validator agent and frontend developer agent with optional Codex third-party review to iteratively fix UI issues.
+**Multi-agent orchestration command** - coordinate between designer agent (reviews UI fidelity), ui-developer agent (fixes UI issues), and optional ui-developer-codex agent (expert third-party review) to iteratively validate and fix UI implementation against design references.
 
 ### Phase 1: Gather User Inputs
 
@@ -69,116 +69,147 @@ If any validation fails, re-ask for that specific input with clarification.
 
 Run up to **10 iterations** of the following sequence:
 
-#### Step 3.1: Launch UI Validator Agent
+#### Step 3.1: Launch Designer Agent
 
-Pass inputs to ui-validator agent using the Task tool:
+Pass inputs to designer agent using the Task tool:
 
 ```
-Analyze the UI implementation against the design reference and provide a detailed comparison report.
+Review the [Component Name] implementation against the design reference and provide a detailed design fidelity report.
 
-**Design Reference Type**: [Screenshot file | Figma design | Live component]
-**Design Reference**: [file path | Figma URL | localhost URL]
-**What's being validated**: [user description, e.g., "user profile page"]
+**Design Reference**: [Figma URL | file path | remote URL]
+**Component Description**: [user description, e.g., "user profile page"]
 **Implementation File(s)**: [found file paths, e.g., "src/components/UserProfile.tsx"]
+**Application URL**: [e.g., "http://localhost:5173" or staging URL]
 
 **Your Tasks:**
 1. Fetch the design reference:
    - If Figma: Use Figma MCP to fetch the design screenshot
-   - If Live: Use chrome-devtools MCP to take screenshot of the URL
-   - If Screenshot: Read the provided file path
+   - If Remote URL: Use chrome-devtools MCP to take screenshot of the URL
+   - If Local file: Read the provided file path
 
-2. Take screenshot of current implementation:
-   - Navigate to localhost URL (infer from implementation file if needed)
-   - Use chrome-devtools MCP to capture implementation screenshot
+2. Capture implementation screenshot:
+   - Navigate to application URL
+   - Use Chrome DevTools MCP to capture implementation screenshot
+   - Use same viewport size as reference for fair comparison
 
-3. Read and understand the implementation files and related dependencies
+3. Read implementation files to understand code structure
 
-4. Compare design reference vs implementation screenshot:
-   - Identify specific differences (spacing, colors, typography, layout, alignment, etc.)
-   - Note what is correct
-   - Note what needs fixing
+4. Perform comprehensive design review comparing:
+   - Colors & theming
+   - Typography
+   - Spacing & layout
+   - Visual elements (borders, shadows, icons)
+   - Responsive design
+   - Accessibility (WCAG 2.1 AA)
+   - Interactive states
 
-5. Return detailed comparison report with:
-   - List of all issues found with descriptions
-   - Probable ways to fix each issue (CSS properties, component changes, etc.)
-   - Severity of each issue (critical, moderate, minor)
-   - Screenshots embedded in response for reference
-   - Specific file paths and line numbers if applicable
+5. Document ALL discrepancies with specific values
+6. Categorize issues by severity (CRITICAL/MEDIUM/LOW)
+7. Provide actionable fixes with code snippets
+8. Calculate design fidelity score
 
-DO NOT apply any fixes. Only analyze and report.
+Return detailed design review report.
 ```
 
-Wait for ui-validator agent to return comparison report.
+Wait for designer agent to return design review report.
 
-#### Step 3.2: Optional Third-Party Review (if enabled)
+#### Step 3.2: Optional Codex Expert Review (if enabled)
 
 If user selected "Yes" for Codex review:
 
-Use `mcp__codex-cli__ask-codex` with the validator's report:
+Use Task tool with `subagent_type: ui-developer-codex` (proxy agent):
 
 ```
-prompt: "I have a UI validation report comparing a design to a React implementation.
-Please analyze the issues and provide expert recommendations on the best way to fix them.
+You are an expert UI/UX developer reviewing a React TypeScript component.
 
-[paste entire validator report here]
+DESIGN CONTEXT:
+- Component: [Component Name]
+- Design Reference: [URL or path to design screenshot]
+- Implementation: [Implementation file paths]
 
-Provide:
-1. Analysis of the root causes of each issue
-2. Best practice recommendations for fixes
-3. Suggested CSS/component changes with code examples
-4. Priority order for addressing issues"
+DESIGNER FEEDBACK (Design Fidelity Review):
+[Paste complete designer review report here]
 
-model: "gpt-5-codex"
-sandbox: false
+CURRENT IMPLEMENTATION CODE:
+[Use Read tool to gather component code and paste here]
+
+TECH STACK:
+- React 19 with TypeScript
+- Tailwind CSS 4
+- [Design system if applicable: shadcn/ui, etc.]
+
+REVIEW STANDARDS:
+1. Design Fidelity: Does implementation match design reference?
+2. React Best Practices: Modern patterns, component composition
+3. Tailwind CSS Best Practices: Proper utilities, responsive, no dynamic classes
+4. Accessibility: WCAG 2.1 AA, ARIA, keyboard navigation, contrast
+5. Responsive Design: Mobile-first, all breakpoints
+6. Code Quality: TypeScript types, maintainability
+
+INSTRUCTIONS:
+Provide expert review with findings categorized as CRITICAL/MEDIUM/MINOR.
+For each finding provide:
+- Category (design/accessibility/responsive/code-quality)
+- Severity
+- Specific issue description
+- File path and line number
+- Current vs recommended implementation
+- Code example
+- Rationale
+
+Focus on actionable feedback with code examples.
 ```
 
-Wait for Codex to return expert opinion.
+Wait for ui-developer-codex agent to return expert review.
 
-#### Step 3.3: Launch Frontend Developer Agent
+#### Step 3.3: Launch UI Developer Agent to Apply Fixes
 
-Pass the validator report (and optional Codex opinion) to developer agent using the Task tool with subagent_type "frontend-development:typescript-frontend-dev":
+Use Task tool with `subagent_type: ui-developer`:
 
 ```
-Fix the UI issues identified in the validation report below.
+Fix the UI implementation issues identified in the design review.
 
-**What's being validated**: [user description, e.g., "user profile page"]
+**Component**: [Component Name]
 **Implementation File(s)**: [found file paths, e.g., "src/components/UserProfile.tsx"]
 
-**UI Validation Report**:
-[paste validator report here]
+**DESIGNER FEEDBACK** (Visual Design Review):
+[Paste complete designer review report]
 
-[If Codex review enabled:]
-**Third-Party Expert Opinion from Codex**:
-[paste Codex recommendations here]
+[If Codex review was done:]
+**CODEX EXPERT REVIEW** (Code Quality & Best Practices):
+[Paste complete Codex review results]
 
-**Your Tasks:**
-1. Read the implementation file(s)
-2. Analyze the reported issues
-3. Apply fixes to address each issue:
-   - Update CSS/Tailwind classes
-   - Adjust component structure if needed
-   - Fix spacing, colors, typography, layout issues
-4. Follow the expert recommendations if provided
-5. Ensure changes follow project patterns
-6. Return summary of changes made
+**Your Task:**
+1. Read all implementation files
+2. Address CRITICAL issues first, then MEDIUM, then LOW
+3. Apply fixes using modern React/TypeScript/Tailwind best practices:
+   - Fix colors using correct Tailwind classes
+   - Fix spacing using proper Tailwind scale (p-4, p-6, etc.)
+   - Fix typography (font sizes, weights, line heights)
+   - Fix layout issues (max-width, alignment, grid/flex)
+   - Fix accessibility (ARIA, contrast, keyboard nav)
+   - Fix responsive design (mobile-first breakpoints)
+4. Use Edit tool to modify files
+5. Run quality checks (typecheck, lint, build)
+6. Provide implementation summary
 
 DO NOT re-validate. Only apply the fixes.
 ```
 
-Wait for developer agent to return summary of applied changes.
+Wait for ui-developer agent to return summary of applied changes.
 
 #### Step 3.4: Check Loop Status
 
-After developer agent completes:
+After ui-developer agent completes:
 - Increment iteration count
-- If iteration < 10: Go back to Step 3.1 (re-run validator)
+- If iteration < 10: Go back to Step 3.1 (re-run designer agent)
 - If iteration = 10: Exit loop and proceed to Phase 4
 
 Track and display progress: "Iteration X/10 complete"
 
 ### Phase 4: Generate Final Report
 
-After loop completes (10 iterations OR validator reports no issues):
+After loop completes (10 iterations OR designer reports no issues):
 
 1. Create temp directory: `/tmp/ui-validation-[timestamp]/`
 
@@ -194,14 +225,14 @@ After loop completes (10 iterations OR validator reports no issues):
    ## Iteration History:
 
    ### Iteration 1
-   **Validator Report:**
+   **Designer Review Report:**
    [issues found]
 
    [If Codex enabled:]
-   **Codex Recommendations:**
+   **Codex Expert Review:**
    [expert opinion]
 
-   **Developer Changes:**
+   **UI Developer Changes:**
    [fixes applied]
 
    ### Iteration 2
@@ -249,52 +280,63 @@ Ask user for next action:
 - Find implementation files from description using Glob/Grep
 - Track iteration count (1-10)
 - Orchestrate the multi-agent loop:
-  - Launch ui-validator agent
-  - Optionally call Codex MCP for third-party review
-  - Launch developer agent
+  - Launch designer agent
+  - Optionally launch ui-developer-codex proxy for expert review
+  - Launch ui-developer agent
   - Repeat up to 10 times
 - Generate final report with iteration history
 - Save screenshots and comparison HTML
 - Present results to user
 - Handle next action choice
 
-**UI Validator Agent Responsibilities:**
-- Fetch Figma screenshot (if Figma reference)
-- Take implementation screenshot via chrome-devtools
-- Read implementation files and dependencies
-- Compare design reference vs implementation
-- Identify all UI differences
-- Return detailed comparison report with:
-  - Specific issues found
-  - Probable fixes for each issue
-  - Severity levels
+**Designer Agent Responsibilities:**
+- Fetch design reference screenshot (Figma MCP or Chrome DevTools)
+- Capture implementation screenshot via Chrome DevTools
+- Read implementation files to understand code structure
+- Perform comprehensive design review:
+  - Colors & theming
+  - Typography
+  - Spacing & layout
+  - Visual elements
+  - Responsive design
+  - Accessibility (WCAG 2.1 AA)
+  - Interactive states
+- Return detailed design review report with:
+  - Specific issues found with exact values
+  - Actionable fixes with code snippets
+  - Severity categorization (CRITICAL/MEDIUM/LOW)
   - File paths and line numbers
-- **DOES NOT apply fixes - only reports**
+  - Design fidelity score
+- **DOES NOT apply fixes - only reviews and reports**
 
-**Codex MCP Responsibilities (Optional):**
-- Receive validator's comparison report
-- Analyze root causes of issues
-- Provide expert recommendations
-- Suggest best practice fixes
-- Prioritize issues
-- Return third-party opinion
+**UI Developer Codex Agent Responsibilities (Optional Proxy):**
+- Receive designer's review report from orchestrator
+- Forward complete prompt to Codex AI via mcp__codex-cli__ask-codex
+- Return Codex's expert analysis verbatim
+- Provides independent third-party validation
+- **Does NOT do any preparation - pure proxy**
 
-**Frontend Developer Agent Responsibilities:**
-- Receive validator report (and optional Codex opinion)
+**UI Developer Agent Responsibilities:**
+- Receive designer feedback (and optional Codex review)
 - Read implementation files
-- Apply fixes to address reported issues
-- Update CSS/Tailwind classes
-- Adjust component structure if needed
-- Follow project patterns
-- Return summary of changes made
+- Apply fixes using modern React/TypeScript/Tailwind best practices:
+  - Fix colors with correct Tailwind classes
+  - Fix spacing with proper scale
+  - Fix typography
+  - Fix layout issues
+  - Fix accessibility issues
+  - Fix responsive design
+- Use Edit tool to modify files
+- Run quality checks (typecheck, lint, build)
+- Provide implementation summary
 - **DOES NOT re-validate - only implements fixes**
 
 **Key Principles:**
 1. Command orchestrates the loop, does NOT do the work
-2. Validator ONLY validates and reports, does NOT fix
-3. Developer ONLY fixes, does NOT validate
-4. Codex provides optional expert opinion between validator and developer
-5. Loop continues until 10 iterations OR validator reports no issues
+2. Designer ONLY reviews design fidelity and reports, does NOT fix
+3. UI Developer ONLY implements fixes, does NOT validate
+4. UI Developer Codex (optional) provides expert third-party review
+5. Loop continues until 10 iterations OR designer reports no issues (PASS)
 
 ### Example User Flow
 
@@ -324,34 +366,34 @@ Command: "Starting validation loop (max 10 iterations)..."
 
 ━━━ Iteration 1/10 ━━━
 
-Command: [Launches ui-validator agent]
-Validator: [Performs validation, returns report with 5 issues]
+Command: [Launches designer agent]
+Designer: [Performs design review, returns report with 5 issues]
 
-Command: [Calls Codex MCP]
-Codex: [Provides expert recommendations]
+Command: [Launches ui-developer-codex proxy]
+Codex: [Provides expert recommendations via proxy]
 
-Command: [Launches developer agent]
-Developer: [Applies fixes, returns summary]
+Command: [Launches ui-developer agent]
+UI Developer: [Applies fixes, returns summary]
 
 Command: "Iteration 1/10 complete. 5 issues addressed."
 
 ━━━ Iteration 2/10 ━━━
 
-Command: [Re-runs validator]
-Validator: [Finds 2 remaining issues]
+Command: [Re-runs designer agent]
+Designer: [Finds 2 remaining issues]
 
-Command: [Calls Codex]
+Command: [Launches ui-developer-codex]
 Codex: [Provides recommendations]
 
-Command: [Launches developer]
-Developer: [Applies fixes]
+Command: [Launches ui-developer]
+UI Developer: [Applies fixes]
 
 Command: "Iteration 2/10 complete. 2 more issues addressed."
 
 ━━━ Iteration 3/10 ━━━
 
-Command: [Re-runs validator]
-Validator: [Reports: "No issues found - implementation matches design"]
+Command: [Re-runs designer agent]
+Designer: [Reports: "Assessment: PASS - No issues found, implementation matches design"]
 
 Command: "Validation successful! No issues remaining."
 Command: [Exits loop early - only 3 iterations needed]
@@ -384,35 +426,44 @@ $ARGUMENTS - Optional: Can provide design reference path, Figma URL, or componen
 - ✅ Parse responses and auto-detect reference type
 - ✅ Find implementation files from description
 - ✅ Track iteration count (1-10)
-- ✅ Launch ui-validator agent (each iteration)
-- ✅ Call Codex MCP (if enabled)
-- ✅ Launch developer agent (each iteration)
+- ✅ Launch designer agent (each iteration)
+- ✅ Launch ui-developer-codex proxy (if enabled)
+- ✅ Launch ui-developer agent (each iteration)
 - ✅ Generate final report
 - ✅ Present results
 
-**UI Validator Agent does:**
-- ✅ Fetch design screenshots
-- ✅ Take implementation screenshots
-- ✅ Compare and identify differences
-- ✅ Return detailed report
+**Designer Agent does:**
+- ✅ Fetch design reference screenshots (Figma/remote/local)
+- ✅ Capture implementation screenshots
+- ✅ Perform comprehensive design review
+- ✅ Compare and identify all UI discrepancies
+- ✅ Categorize by severity (CRITICAL/MEDIUM/LOW)
+- ✅ Calculate design fidelity score
+- ✅ Provide actionable fixes with code snippets
+- ✅ Return detailed design review report
 - ❌ Does NOT apply fixes
 
-**Codex MCP does (Optional):**
-- ✅ Analyze validator report
-- ✅ Provide expert recommendations
-- ✅ Return third-party opinion
+**UI Developer Codex Agent does (Optional Proxy):**
+- ✅ Receive complete prompt from orchestrator
+- ✅ Forward to Codex AI via mcp__codex-cli__ask-codex
+- ✅ Return Codex's expert analysis verbatim
+- ✅ Provide third-party validation
+- ❌ Does NOT prepare context (pure proxy)
 
-**Developer Agent does:**
-- ✅ Apply fixes to code
-- ✅ Update CSS/components
-- ✅ Return summary of changes
+**UI Developer Agent does:**
+- ✅ Receive designer feedback (+ optional Codex review)
+- ✅ Apply fixes using React/TypeScript/Tailwind best practices
+- ✅ Fix colors, spacing, typography, layout, accessibility
+- ✅ Update Tailwind CSS classes
+- ✅ Run quality checks (typecheck, lint, build)
+- ✅ Return implementation summary
 - ❌ Does NOT re-validate
 
 **Loop Flow:**
 ```
-1. Validator → Report
-2. (Optional) Codex → Expert Opinion
-3. Developer → Apply Fixes
+1. Designer → Design Review Report
+2. (Optional) UI Developer Codex → Expert Opinion (via Codex AI)
+3. UI Developer → Apply Fixes
 4. Repeat steps 1-3 up to 10 times
 5. Generate final report
 ```
@@ -420,7 +471,7 @@ $ARGUMENTS - Optional: Can provide design reference path, Figma URL, or componen
 ### Important Details
 
 **Early Exit:**
-- If validator reports "No issues found" at any iteration, exit loop immediately
+- If designer reports "Assessment: PASS" at any iteration, exit loop immediately
 - Display total iterations used (e.g., "Complete after 3/10 iterations")
 
 **Error Handling:**

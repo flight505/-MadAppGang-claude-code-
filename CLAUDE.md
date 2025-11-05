@@ -12,11 +12,12 @@
 A complete Claude Code plugin marketplace with enterprise-level architecture:
 
 - **Plugin Marketplace** (`mag-claude-plugins`)
-- **Frontend Development Plugin** (v2.2.0) - Full-featured Sonnet-powered
-  - 9 Specialized Agents
-  - 5 Slash Commands
-  - 2 Skills
+- **Frontend Development Plugin** (v2.3.0) - Full-featured Sonnet-powered
+  - 11 Specialized Agents (including Designer + UI Developer ecosystem)
+  - 6 Slash Commands
+  - 3 Skills
   - MCP Servers (auto-configured)
+  - Pixel-perfect UI implementation with design fidelity validation
 - **Quick Frontend Plugin** (v1.0.0) - Fast Haiku-powered
   - 4 Specialized Agents (general, developer, reviewer, tester)
   - 1 Slash Command (/implement)
@@ -75,9 +76,9 @@ claude-code/
     │   ├── plugin.json
     │   ├── DEPENDENCIES.md
     │   ├── README.md
-    │   ├── agents/                   (9 agents)
-    │   ├── commands/                 (5 commands)
-    │   ├── skills/                   (2 skills)
+    │   ├── agents/                   (11 agents)
+    │   ├── commands/                 (6 commands)
+    │   ├── skills/                   (3 skills)
     │   └── mcp-servers/
     ├── qfrontend/                    # Quick frontend plugin (Haiku)
     │   ├── plugin.json
@@ -117,19 +118,23 @@ claude-code/
 - `project-cleaner` - Cleanup utilities (Haiku)
 - `senior-code-reviewer` - Code review (Sonnet)
 - `codex-code-reviewer` - AI code review via Codex (Proxy)
-- `ui-implementation-validator` - UI validation orchestrator (Sonnet)
+- `designer` - UI/UX design review specialist (Sonnet)
+- `ui-developer` - Senior UI developer with Tailwind CSS 4 & React 19 best practices (Sonnet)
+- `ui-developer-codex` - Expert UI review proxy via Codex AI (Proxy)
 
 **Commands:**
-- `/implement` - Full-cycle implementation (7 phases)
+- `/implement` - Full-cycle implementation with design fidelity validation (8 phases)
+- `/implement-ui` - Implement UI from scratch with intelligent agent switching
 - `/import-figma` - Import Figma components
 - `/configure-mcp` - Configure MCP servers
 - `/api-docs` - API documentation workflows
 - `/cleanup-artifacts` - Clean temporary files
-- `/validate-ui` - UI validation workflow
+- `/validate-ui` - UI validation workflow with designer & ui-developer
 
 **Skills:**
 - `browser-debugger` - UI testing & debugging
 - `api-spec-analyzer` - OpenAPI/Swagger analysis
+- `ui-implementer` - Proactive UI implementation from design references
 
 ### Quick Frontend Plugin (Haiku-Powered)
 
@@ -263,15 +268,19 @@ Include marketplace in project settings (requires folder trust):
 ✅ **Production Ready**
 
 **3 Complete Plugins:**
-1. **Frontend** (v2.2.0) - 9 agents, 5 commands, 2 skills - Full-featured Sonnet
+1. **Frontend** (v2.3.0) - 11 agents, 6 commands, 3 skills - Full-featured Sonnet with pixel-perfect UI
 2. **Quick Frontend** (v1.0.0) - 4 agents, 1 command - Fast Haiku
 3. **Code Analysis** (v1.0.0) - 1 agent - Deep investigation
 
 **Features:**
-- 14+ specialized agents across all plugins
-- 6+ slash commands
-- 2 workflow skills
-- 3000+ lines of documentation
+- 16+ specialized agents across all plugins
+- **NEW: Designer + UI Developer ecosystem** (3 agents for pixel-perfect implementation)
+- 7+ slash commands (**NEW: /implement-ui** with intelligent agent switching)
+- 3 workflow skills (**NEW: ui-implementer** skill)
+- **NEW: Design Fidelity Validation** in /implement command (PHASE 2.5)
+- Modern UI development with **Tailwind CSS 4 & React 19 best practices (2025)**
+- **Smart agent switching** - adaptively uses UI Developer or UI Developer Codex
+- 4000+ lines of documentation
 - Team architecture implemented
 - Smart validation system
 - Security best practices

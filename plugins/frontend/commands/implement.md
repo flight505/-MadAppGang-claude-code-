@@ -30,9 +30,12 @@ Orchestrate a complete feature implementation workflow using specialized agents 
 **Delegation Rules:**
 - ALL code changes → developer agent
 - ALL planning → architect agent
+- ALL design reviews (UI fidelity) → designer agent
+- ALL UI implementation/fixes → ui-developer agent
 - ALL code reviews → reviewer + codex-reviewer agents
 - ALL testing → test-architect agent
 - ALL cleanup → cleaner agent
+- OPTIONAL Codex UI expert review → ui-developer-codex agent
 
 If you find yourself about to use Write or Edit tools, STOP and delegate to the appropriate agent instead.
 
@@ -60,6 +63,15 @@ TodoWrite with the following items:
 - content: "PHASE 2: Get manual testing instructions from implementation agent"
   status: "pending"
   activeForm: "PHASE 2: Getting manual testing instructions from implementation agent"
+- content: "PHASE 2.5: Detect Figma design links in feature request and plan"
+  status: "pending"
+  activeForm: "PHASE 2.5: Detecting Figma design links"
+- content: "PHASE 2.5: Run design fidelity validation for UI components (if Figma links found)"
+  status: "pending"
+  activeForm: "PHASE 2.5: Running design fidelity validation"
+- content: "PHASE 2.5: Quality gate - ensure UI matches design specifications"
+  status: "pending"
+  activeForm: "PHASE 2.5: Ensuring UI matches design specifications"
 - content: "PHASE 3: Launch ALL THREE reviewers in parallel (code + codex + UI testing)"
   status: "pending"
   activeForm: "PHASE 3: Launching all three reviewers in parallel"
@@ -157,6 +169,238 @@ TodoWrite with the following items:
    - Agent returns structured testing guide
    - **Update TodoWrite**: Mark "PHASE 2: Get manual testing instructions" as completed
    - Save testing instructions for use by tester agent
+
+### PHASE 2.5: Design Fidelity Validation (Conditional - Only if Figma Links Present)
+
+This phase runs ONLY if Figma design links are detected in the feature request or architecture plan. It ensures pixel-perfect UI implementation before code review.
+
+**1. Detect Figma Design Links**:
+   - **Update TodoWrite**: Mark "PHASE 2.5: Detect Figma design links" as in_progress
+   - Use Grep to search for Figma URLs in:
+     * Original feature request (`$ARGUMENTS`)
+     * Architecture plan files (AI-DOCS/*.md)
+   - Figma URL pattern: `https://(?:www\.)?figma\.com/(?:file|design)/[a-zA-Z0-9]+/[^\s?]+(?:\?[^\s]*)?(?:node-id=[0-9-]+)?`
+   - **Update TodoWrite**: Mark "PHASE 2.5: Detect Figma design links" as completed
+
+**2. Skip Phase if No Figma Links**:
+   - IF no Figma URLs found:
+     * Log: "No Figma design references found. Skipping PHASE 2.5 (Design Fidelity Validation)."
+     * **Update TodoWrite**: Mark "PHASE 2.5: Run design fidelity validation" as completed with note "Skipped - no design references"
+     * **Update TodoWrite**: Mark "PHASE 2.5: Quality gate" as completed with note "Skipped - no design references"
+     * Proceed directly to PHASE 3 (Triple Review Loop)
+
+**3. Parse Design References** (if Figma links found):
+   - Extract all unique Figma URLs from search results
+   - For each Figma URL, identify:
+     * Component/screen name (from URL text or surrounding context)
+     * Node ID (if present in URL query parameter)
+   - Match each design reference to implementation file(s):
+     * Use component name to search for files (Glob/Grep)
+     * If user provided explicit component list in plan, use that
+     * Create mapping: `[Figma URL] → [Component Name] → [Implementation File Path(s)]`
+   - Document the mapping for use in validation loop
+
+**4. Ask User for Codex Review Preference**:
+   - Use AskUserQuestion to ask: "Figma design references detected for UI components. Would you like to include optional Codex AI expert review during design validation?"
+   - Options:
+     * "Yes - Include Codex AI review for expert validation"
+     * "No - Use only designer agent for validation"
+   - Store user's choice for use in validation loop
+
+**5. Run Iterative Design Fidelity Validation Loop**:
+   - **Update TodoWrite**: Mark "PHASE 2.5: Run design fidelity validation" as in_progress
+   - For EACH component with a Figma design reference:
+
+   **Loop (max 3 iterations per component):**
+
+   **Step 5.1: Launch Designer Agent**
+   - Use Task tool with `subagent_type: designer`
+   - Provide complete context:
+     ```
+     Review the [Component Name] implementation against the Figma design reference.
+
+     **Design Reference**: [Figma URL]
+     **Component Description**: [e.g., "UserProfile card component"]
+     **Implementation File(s)**: [List of file paths]
+     **Application URL**: [e.g., "http://localhost:5173" or staging URL]
+
+     **Your Task:**
+     1. Use Figma MCP to fetch the design reference screenshot
+     2. Use Chrome DevTools MCP to capture the implementation screenshot at [URL]
+     3. Perform comprehensive design review comparing:
+        - Colors & theming
+        - Typography
+        - Spacing & layout
+        - Visual elements (borders, shadows, icons)
+        - Responsive design
+        - Accessibility (WCAG 2.1 AA)
+        - Interactive states
+     4. Document ALL discrepancies with specific values
+     5. Categorize issues by severity (CRITICAL/MEDIUM/LOW)
+     6. Provide actionable fixes with code snippets
+     7. Calculate design fidelity score
+
+     Return detailed design review report.
+     ```
+   - Wait for designer agent to complete and return review report
+
+   **Step 5.2: Analyze Designer Review Results**
+   - Extract overall assessment from designer report (PASS / NEEDS IMPROVEMENT / FAIL)
+   - Extract design fidelity score
+   - Document issues found by severity
+
+   **Step 5.3: Optional Codex Expert Review** (if user enabled)
+   - IF user chose "Yes" for Codex review:
+     * Use Task tool with `subagent_type: ui-developer-codex`
+     * Provide complete prompt (orchestrator prepares):
+       ```
+       You are an expert UI/UX developer reviewing a React TypeScript component.
+
+       DESIGN CONTEXT:
+       - Component: [Component Name]
+       - Design Reference: [Figma URL - captured screenshot]
+       - Implementation: [Implementation file paths]
+
+       DESIGNER FEEDBACK:
+       [Paste complete designer review report here]
+
+       CURRENT IMPLEMENTATION CODE:
+       [Use Read tool to gather component code and paste here]
+
+       TECH STACK:
+       - React 19 with TypeScript
+       - Tailwind CSS 4
+       - [Design system if applicable: shadcn/ui, etc.]
+
+       REVIEW STANDARDS:
+       1. Design Fidelity: Does implementation match design reference?
+       2. React Best Practices: Modern patterns, component composition
+       3. Tailwind CSS Best Practices: Proper utilities, responsive, no dynamic classes
+       4. Accessibility: WCAG 2.1 AA, ARIA, keyboard navigation, contrast
+       5. Responsive Design: Mobile-first, all breakpoints
+       6. Code Quality: TypeScript types, maintainability
+
+       INSTRUCTIONS:
+       Provide expert review with findings categorized as CRITICAL/MEDIUM/MINOR.
+       For each finding provide:
+       - Category (design/accessibility/responsive/code-quality)
+       - Severity
+       - Specific issue description
+       - File path and line number
+       - Current vs recommended implementation
+       - Code example
+       - Rationale
+
+       Focus on actionable feedback with code examples.
+       ```
+     * Wait for Codex review results
+   - IF user chose "No": Skip Codex review
+
+   **Step 5.4: Determine if Fixes Needed**
+   - IF designer assessment is "PASS" AND (no Codex review OR Codex found no critical issues):
+     * Log: "[Component Name] passes design fidelity validation"
+     * Move to next component
+   - IF designer found issues OR Codex found critical/medium issues:
+     * Proceed to Step 5.5 (Apply Fixes)
+
+   **Step 5.5: Launch UI Developer to Apply Fixes**
+   - Use Task tool with `subagent_type: ui-developer`
+   - Provide complete context:
+     ```
+     Fix the UI implementation issues identified in the design review.
+
+     **Component**: [Component Name]
+     **Implementation File(s)**: [List of file paths]
+
+     **DESIGNER FEEDBACK** (Visual Design Review):
+     [Paste complete designer review report]
+
+     [If Codex review was done:]
+     **CODEX EXPERT REVIEW** (Code Quality & Best Practices):
+     [Paste complete Codex review results]
+
+     **Your Task:**
+     1. Read all implementation files
+     2. Address CRITICAL issues first, then MEDIUM, then LOW
+     3. Apply fixes using modern React/TypeScript/Tailwind best practices:
+        - Fix colors using correct Tailwind classes
+        - Fix spacing using proper Tailwind scale (p-4, p-6, etc.)
+        - Fix typography (font sizes, weights, line heights)
+        - Fix layout issues (max-width, alignment, grid/flex)
+        - Fix accessibility (ARIA, contrast, keyboard nav)
+        - Fix responsive design (mobile-first breakpoints)
+     4. Use Edit tool to modify files
+     5. Run quality checks (typecheck, lint, build)
+     6. Provide implementation summary
+
+     DO NOT re-validate. Only apply the fixes.
+     ```
+   - Wait for ui-developer to complete fixes
+
+   **Step 5.6: Check Loop Status**
+   - Increment iteration count for this component
+   - IF iteration < 3:
+     * Loop back to Step 5.1 (re-run designer agent)
+   - IF iteration = 3 AND issues still remain:
+     * Ask user: "Component [Name] still has design issues after 3 iterations. How would you like to proceed?"
+     * Options:
+       - "Continue with current implementation (accept minor deviations)"
+       - "Run 3 more iterations to refine further"
+       - "Manual intervention needed"
+     * Act based on user choice
+
+   **End of Loop for Current Component**
+
+   - Track metrics for each component:
+     * Iterations used
+     * Issues found and fixed
+     * Final design fidelity score
+     * Final assessment (PASS/NEEDS IMPROVEMENT)
+
+**6. Quality Gate - All Components Validated**:
+   - **Update TodoWrite**: Mark "PHASE 2.5: Run design fidelity validation" as completed
+   - **Update TodoWrite**: Mark "PHASE 2.5: Quality gate - ensure UI matches design" as in_progress
+   - IF all components passed design validation (PASS assessment):
+     * Log: "✅ All UI components match design specifications"
+     * **Update TodoWrite**: Mark quality gate as completed
+     * Proceed to PHASE 3
+   - IF any component has FAIL assessment after max iterations:
+     * Document which components failed
+     * Ask user: "Some components failed design validation. Proceed anyway or iterate more?"
+     * Act based on user choice
+   - **Update TodoWrite**: Mark "PHASE 2.5: Quality gate" as completed
+
+**Design Fidelity Validation Summary** (to be included in final report):
+```markdown
+## PHASE 2.5: Design Fidelity Validation Results
+
+**Figma References Found**: [Number]
+**Components Validated**: [Number]
+**Codex Expert Review**: [Enabled/Disabled]
+
+### Validation Results by Component:
+
+**[Component 1 Name]**:
+- Design Reference: [Figma URL]
+- Iterations: [X/3]
+- Issues Found: [Total count]
+  - Critical: [Count] - All Fixed ✅
+  - Medium: [Count] - All Fixed ✅
+  - Low: [Count] - [Fixed/Accepted]
+- Final Design Fidelity Score: [X/60]
+- Assessment: [PASS ✅ / NEEDS IMPROVEMENT ⚠️]
+
+**[Component 2 Name]**:
+...
+
+### Overall Design Validation:
+- Total Issues Found: [Number]
+- Total Issues Fixed: [Number]
+- Average Design Fidelity Score: [X/60]
+- All Components Pass: [Yes ✅ / No ❌]
+```
+
+**REMINDER**: You are orchestrating. You do NOT implement fixes yourself. Always use Task to delegate to designer and ui-developer agents.
 
 ### PHASE 3: Triple Review Loop (Code + Code AI + Manual UI Testing)
 
@@ -413,6 +657,14 @@ TodoWrite with the following items:
    - Patterns and components used
 
    **Quality Assurance:**
+   - Design Fidelity Validation (PHASE 2.5):
+     * Figma references found: [Number or "N/A"]
+     * Components validated against design: [Number or "N/A"]
+     * Design fidelity iterations: [Number or "N/A"]
+     * Issues found and fixed: [Number or "N/A"]
+     * Average design fidelity score: [X/60 or "N/A"]
+     * Codex UI expert review: [Enabled/Disabled or "N/A"]
+     * All components match design: [Yes ✅ / No ❌ / "N/A"]
    - Number of triple review cycles completed (code + codex + UI testing)
    - Senior Code Reviewer feedback summary
    - Codex Analyzer feedback summary
@@ -443,6 +695,10 @@ TodoWrite with the following items:
 
    **Metrics:**
    - Total time/iterations
+   - Design fidelity cycles: [number or "N/A - no Figma references"]
+   - Components validated against design: [number or "N/A"]
+   - Design issues found and fixed: [number or "N/A"]
+   - Average design fidelity score: [X/60 or "N/A"]
    - Triple review cycles: [number] (code + codex + UI testing)
    - Manual UI test steps: [number executed]
    - UI bugs found and fixed: [number]
@@ -471,6 +727,7 @@ TodoWrite with the following items:
 - Maintain a workflow log showing agent transitions
 
 ### Loop Prevention:
+- Maximum 3 design fidelity iterations per component before escalating to user
 - Maximum 3 triple review cycles (code + codex + UI testing) before escalating to user
 - Maximum 5 automated test-fix cycles before escalating to user
 - If loops exceed limits, ask user for guidance
@@ -487,6 +744,7 @@ TodoWrite with the following items:
 
 ### Quality Gates:
 - User approval required after Phase 1 (architecture plan)
+- ALL UI components must match design specifications (Phase 2.5 gate - if Figma links present)
 - **ALL THREE** reviewer approvals required before Phase 4 (reviewer AND Codex AND tester)
 - All automated tests must pass before Phase 5
 - User approval required after Phase 5 (final implementation review)
@@ -498,13 +756,14 @@ The command is complete when:
 1. ✅ User approved the architecture plan (Phase 1 gate)
 2. ✅ Implementation follows the approved plan
 3. ✅ Manual testing instructions generated by implementation agent
-4. ✅ **ALL THREE** reviewers approved the implementation (Phase 3 gate: reviewer AND Codex AND tester)
-5. ✅ Manual UI testing passed with no critical issues
-6. ✅ All automated tests written and passing (Phase 4 gate)
-7. ✅ User approved the final implementation (Phase 5 gate)
-8. ✅ Project cleanup completed successfully
-9. ✅ Comprehensive summary provided
-10. ✅ User acknowledges completion
+4. ✅ ALL UI components match design specifications (Phase 2.5 gate - if applicable)
+5. ✅ **ALL THREE** reviewers approved the implementation (Phase 3 gate: reviewer AND Codex AND tester)
+6. ✅ Manual UI testing passed with no critical issues
+7. ✅ All automated tests written and passing (Phase 4 gate)
+8. ✅ User approved the final implementation (Phase 5 gate)
+9. ✅ Project cleanup completed successfully
+10. ✅ Comprehensive summary provided
+11. ✅ User acknowledges completion
 
 ## Examples: Correct vs Incorrect Orchestrator Behavior
 
@@ -659,6 +918,13 @@ CORRECT BEHAVIOR:
 ## Notes
 
 - This is a long-running orchestration - expect multiple agent invocations
+- **PHASE 2.5 (Design Fidelity Validation)** is conditional:
+  * Only runs if Figma design links are detected in feature request or architecture plan
+  * Uses designer agent to review implementation vs design reference
+  * Uses ui-developer agent to fix visual/UX discrepancies
+  * Optional ui-developer-codex agent provides third-party expert review
+  * Maximum 3 iterations per component before escalating to user
+  * Ensures pixel-perfect implementation before code review phase
 - **CRITICAL**: Always run all three reviewers in parallel using THREE Task tool calls in a single message:
   * Task 1: `subagent_type: reviewer` (human-focused code review using Sonnet)
   * Task 2: `subagent_type: codex-reviewer` (automated AI code review using Codex via mcp__codex-cli__ask-codex)
