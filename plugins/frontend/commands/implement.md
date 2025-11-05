@@ -112,6 +112,9 @@ TodoWrite with the following items:
 - content: "PHASE 2.5: Quality gate - ensure UI matches design specifications"
   status: "pending"
   activeForm: "PHASE 2.5: Ensuring UI matches design specifications"
+- content: "PHASE 2.5: MANDATORY user manual validation of UI components"
+  status: "pending"
+  activeForm: "PHASE 2.5: Awaiting user validation of UI components"
 - content: "PHASE 3: Launch ALL THREE reviewers in parallel (code + codex + UI testing)"
   status: "pending"
   activeForm: "PHASE 3: Launching all three reviewers in parallel"
@@ -401,13 +404,175 @@ This phase runs ONLY if Figma design links are detected in the feature request o
    - **Update TodoWrite**: Mark "PHASE 2.5: Run design fidelity validation" as completed
    - **Update TodoWrite**: Mark "PHASE 2.5: Quality gate - ensure UI matches design" as in_progress
    - IF all components passed design validation (PASS assessment):
-     * Log: "✅ All UI components match design specifications"
-     * **Update TodoWrite**: Mark quality gate as completed
-     * Proceed to PHASE 3
+     * Log: "✅ Automated design validation passed for all components"
+     * **DO NOT mark quality gate as completed yet** - proceed to Step 7 for mandatory user validation
    - IF any component has FAIL assessment after max iterations:
      * Document which components failed
      * Ask user: "Some components failed design validation. Proceed anyway or iterate more?"
      * Act based on user choice
+
+**7. MANDATORY User Manual Validation Gate** (CRITICAL - NO SKIP!)
+
+**IMPORTANT**: This step is MANDATORY when automated validation claims PASS. Never skip this step.
+
+Even when designer agent claims "PASS" for all components, the user must manually verify the implementation.
+
+**Present to user:**
+
+```
+🎯 Automated Design Validation Passed - User Verification Required
+
+The designer agent has validated all UI components and reports they match the design references.
+
+However, automated validation can miss subtle issues. Please manually verify the implementation:
+
+**Components to Check:**
+[List each component with its Figma URL]
+- [Component 1]: [Figma URL] → [Implementation file]
+- [Component 2]: [Figma URL] → [Implementation file]
+...
+
+**What to Verify:**
+1. Open the application at: [Application URL]
+2. Navigate to each implemented component
+3. Compare against the Figma design references
+4. Check for:
+   - Colors match exactly (backgrounds, text, borders)
+   - Spacing and layout are pixel-perfect
+   - Typography (fonts, sizes, weights, line heights) match
+   - Visual elements (shadows, borders, icons) match
+   - Interactive states work correctly (hover, focus, active, disabled)
+   - Responsive design works on mobile, tablet, desktop
+   - Accessibility features work properly (keyboard nav, ARIA)
+   - Overall visual fidelity matches the design
+
+**Validation Summary:**
+- Components validated: [number]
+- Total iterations: [sum of all component iterations]
+- Average design fidelity score: [average score]/60
+- All automated checks: PASS ✅
+
+Please test the implementation and let me know:
+```
+
+Use AskUserQuestion to ask:
+```
+Do all UI components match their design references?
+
+Please manually test each component against the Figma designs.
+
+Options:
+1. "Yes - All components look perfect" → Approve and continue
+2. "No - I found issues in some components" → Provide feedback
+```
+
+**If user selects "Yes - All components look perfect":**
+- Log: "✅ User approved all UI components! Design implementation verified by human review."
+- **Update TodoWrite**: Mark "PHASE 2.5: Quality gate" as completed
+- Proceed to PHASE 3 (Triple Review Loop)
+
+**If user selects "No - I found issues":**
+- Ask user to specify which component(s) have issues:
+  ```
+  Which component(s) have issues?
+
+  Please list the component names or numbers from the list above.
+
+  Example: "Component 1 (UserProfile), Component 3 (Dashboard)"
+  ```
+
+- For EACH component with issues, ask for specific feedback:
+  ```
+  Please describe the issues you found in [Component Name]. You can provide:
+
+  1. **Screenshot** - Path to a screenshot showing the issue(s)
+  2. **Text Description** - Detailed description of what's wrong
+
+  Example descriptions:
+  - "The header background color is too light - should be #1a1a1a not #333333"
+  - "Button spacing is wrong - there should be 24px gap not 16px"
+  - "Font size on mobile is too small - headings should be 24px not 18px"
+  - "The card shadow is missing - should match Figma shadow-lg"
+  - "Profile avatar should be 64px not 48px"
+
+  What issues did you find in [Component Name]?
+  ```
+
+- Collect user feedback for each problematic component
+- Store as: `user_feedback_by_component = {component_name: feedback_text, ...}`
+
+- For EACH component with user feedback:
+  * Log: "⚠️ User found issues in [Component Name]. Launching UI Developer."
+  * Use Task tool with `subagent_type: frontend:ui-developer`:
+    ```
+    Fix the UI implementation issues identified by the USER during manual testing.
+
+    **CRITICAL**: These issues were found by a human reviewer, not automated validation.
+    The user manually tested the implementation against the Figma design and found real problems.
+
+    **Component**: [Component Name]
+    **Design Reference**: [Figma URL]
+    **Implementation File(s)**: [List of file paths]
+    **Application URL**: [app_url]
+
+    **USER FEEDBACK** (Human Manual Testing):
+    [Paste user's complete feedback for this component]
+
+    [If screenshot provided:]
+    **User's Screenshot**: [screenshot_path]
+    Please read the screenshot to understand the visual issues the user is pointing out.
+
+    **Your Task:**
+    1. Read the Figma design reference using Figma MCP
+    2. Read all implementation files
+    3. Carefully review the user's specific feedback
+    4. Address EVERY issue the user mentioned:
+       - If user mentioned colors: Fix to exact hex/Tailwind values
+       - If user mentioned spacing: Fix to exact pixel values
+       - If user mentioned typography: Fix font sizes, weights, line heights
+       - If user mentioned layout: Fix alignment, max-width, grid/flex
+       - If user mentioned visual elements: Fix shadows, borders, border-radius
+       - If user mentioned interactive states: Fix hover, focus, active, disabled
+       - If user mentioned responsive: Fix mobile, tablet, desktop breakpoints
+       - If user mentioned accessibility: Fix ARIA, contrast, keyboard nav
+    5. Use Edit tool to modify files
+    6. Use modern React/TypeScript/Tailwind best practices:
+       - React 19 patterns
+       - Tailwind CSS 4 (utility-first, no @apply, static classes)
+       - Mobile-first responsive design
+       - WCAG 2.1 AA accessibility
+    7. Run quality checks (typecheck, lint, build)
+    8. Provide detailed summary explaining:
+       - Each user issue addressed
+       - Exact changes made
+       - Files modified
+
+    **IMPORTANT**: User feedback takes priority. The user has manually compared
+    against the Figma design and seen real issues that automated validation missed.
+
+    Return detailed fix summary when complete.
+    ```
+
+  * Wait for ui-developer to complete fixes
+
+- After ALL components with user feedback are fixed:
+  * Log: "All user-reported issues addressed. Re-running designer validation for affected components."
+  * Re-run designer agent validation ONLY for components that had user feedback
+  * Check if designer now reports PASS for those components
+  * Ask user to verify fixes:
+    ```
+    I've addressed all the issues you reported. Please verify the fixes:
+
+    [List components that were fixed]
+
+    Do the fixes look correct now?
+    ```
+
+  * If user approves: Mark quality gate as completed, proceed to PHASE 3
+  * If user still finds issues: Repeat user feedback collection and fixing
+
+**End of Step 7 (User Manual Validation Gate)**
+
    - **Update TodoWrite**: Mark "PHASE 2.5: Quality gate" as completed
 
 **Design Fidelity Validation Summary** (to be included in final report):
@@ -417,27 +582,38 @@ This phase runs ONLY if Figma design links are detected in the feature request o
 **Figma References Found**: [Number]
 **Components Validated**: [Number]
 **Codex Expert Review**: [Enabled/Disabled]
+**User Manual Validation**: ✅ APPROVED
 
 ### Validation Results by Component:
 
 **[Component 1 Name]**:
 - Design Reference: [Figma URL]
-- Iterations: [X/3]
-- Issues Found: [Total count]
+- Automated Iterations: [X/3]
+- Issues Found by Designer: [Total count]
   - Critical: [Count] - All Fixed ✅
   - Medium: [Count] - All Fixed ✅
   - Low: [Count] - [Fixed/Accepted]
+- Issues Found by User: [Count] - All Fixed ✅
 - Final Design Fidelity Score: [X/60]
-- Assessment: [PASS ✅ / NEEDS IMPROVEMENT ⚠️]
+- Automated Assessment: [PASS ✅ / NEEDS IMPROVEMENT ⚠️]
+- User Approval: ✅ "Looks perfect"
 
 **[Component 2 Name]**:
 ...
 
 ### Overall Design Validation:
-- Total Issues Found: [Number]
+- Total Issues Found by Automation: [Number]
+- Total Issues Found by User: [Number]
 - Total Issues Fixed: [Number]
 - Average Design Fidelity Score: [X/60]
-- All Components Pass: [Yes ✅ / No ❌]
+- All Components Pass Automated: [Yes ✅ / No ❌]
+- **User Manual Validation: ✅ APPROVED**
+
+### User Validation Details:
+- User feedback rounds: [Number]
+- Components requiring user fixes: [Number]
+- User-reported issues addressed: [Number] / [Number] (100% ✅)
+- Final user approval: ✅ "Yes - All components look perfect"
 ```
 
 **REMINDER**: You are orchestrating. You do NOT implement fixes yourself. Always use Task to delegate to designer and ui-developer agents.
@@ -785,10 +961,12 @@ This phase runs ONLY if Figma design links are detected in the feature request o
 ### Quality Gates:
 - User approval required after Phase 1 (architecture plan)
 - ALL UI components must match design specifications (Phase 2.5 gate - if Figma links present)
+- **MANDATORY: User manual validation of UI components (Phase 2.5 gate - if Figma links present)**
 - **ALL THREE** reviewer approvals required before Phase 4 (reviewer AND Codex AND tester)
 - All automated tests must pass before Phase 5
 - User approval required after Phase 5 (final implementation review)
 - Each gate is mandatory - no skipping
+- User must explicitly approve UI: "Yes - All components look perfect"
 
 ## Success Criteria
 
@@ -797,13 +975,16 @@ The command is complete when:
 2. ✅ Implementation follows the approved plan
 3. ✅ Manual testing instructions generated by implementation agent
 4. ✅ ALL UI components match design specifications (Phase 2.5 gate - if applicable)
-5. ✅ **ALL THREE** reviewers approved the implementation (Phase 3 gate: reviewer AND Codex AND tester)
-6. ✅ Manual UI testing passed with no critical issues
-7. ✅ All automated tests written and passing (Phase 4 gate)
-8. ✅ User approved the final implementation (Phase 5 gate)
-9. ✅ Project cleanup completed successfully
-10. ✅ Comprehensive summary provided
-11. ✅ User acknowledges completion
+5. ✅ **MANDATORY: User manually validated UI components (Phase 2.5 gate - if Figma links present)**
+6. ✅ **ALL THREE** reviewers approved the implementation (Phase 3 gate: reviewer AND Codex AND tester)
+7. ✅ Manual UI testing passed with no critical issues
+8. ✅ All automated tests written and passing (Phase 4 gate)
+9. ✅ User approved the final implementation (Phase 5 gate)
+10. ✅ Project cleanup completed successfully
+11. ✅ Comprehensive summary provided
+12. ✅ User acknowledges completion
+
+**CRITICAL**: Item #5 (User manual validation of UI) is MANDATORY when Figma design references are present. The workflow cannot proceed past Phase 2.5 without explicit user approval after manual testing against designs.
 
 ## Examples: Correct vs Incorrect Orchestrator Behavior
 

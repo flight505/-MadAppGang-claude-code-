@@ -100,6 +100,9 @@ TodoWrite with the following items:
 - content: "PHASE 3: Quality gate - ensure design fidelity achieved"
   status: "pending"
   activeForm: "PHASE 3: Design fidelity quality gate"
+- content: "PHASE 3: MANDATORY user manual validation (human verification required)"
+  status: "pending"
+  activeForm: "PHASE 3: Awaiting user manual validation"
 - content: "PHASE 4: Generate final implementation report"
   status: "pending"
   activeForm: "PHASE 4: Generating final report"
@@ -381,9 +384,151 @@ Set `current_issues_count` = issue count from designer report.
 
 IF designer assessment is "PASS":
 - Set `design_fidelity_achieved = true`
-- Log: "✅ Design fidelity achieved! Component matches design reference."
+- Log: "✅ Automated design fidelity validation passed! Component appears to match design reference."
 - **Update TodoWrite**: Mark "PHASE 3: Quality gate - ensure design fidelity achieved" as completed
-- **Exit loop** (success)
+- **DO NOT exit loop yet** - proceed to Step 3.3.5 for mandatory user validation
+
+**Step 3.3.5: MANDATORY User Manual Validation Gate** (CRITICAL - NO SKIP!)
+
+**IMPORTANT**: This step is MANDATORY when automated validation claims PASS. Never skip this step.
+
+Even when designer agent claims "PASS", the user must manually verify the implementation against the real design reference.
+
+**Present to user:**
+
+```
+🎯 Automated Validation Passed - User Verification Required
+
+The designer agent has reviewed the implementation and reports that it matches the design reference.
+
+However, automated validation can miss subtle issues. Please manually verify the implementation:
+
+**What to Check:**
+1. Open the application at: [app_url]
+2. Navigate to the implemented component: [component_description]
+3. Compare against design reference: [design_reference]
+4. Check for:
+   - Colors match exactly
+   - Spacing and layout are pixel-perfect
+   - Typography (fonts, sizes, weights) match
+   - Interactive states work correctly (hover, focus, active)
+   - Responsive design works on different screen sizes
+   - Accessibility features work properly
+   - Overall visual fidelity matches the design
+
+**Current Implementation Status:**
+- Iterations completed: [iteration_count]
+- Last designer assessment: PASS ✅
+- Design fidelity score: [score]/60
+
+Please test the implementation and let me know:
+```
+
+Use AskUserQuestion to ask:
+```
+Does the implementation match the design reference?
+
+Please manually test the UI and compare it to the design.
+
+Options:
+1. "Yes - Looks perfect, matches design exactly" → Approve and continue
+2. "No - I found issues" → Provide feedback to fix issues
+```
+
+**If user selects "Yes - Looks perfect":**
+- Log: "✅ User approved! Implementation verified by human review."
+- Set `user_approved = true`
+- **Exit validation loop** (success confirmed by user)
+- Proceed to PHASE 4 (Final Report)
+
+**If user selects "No - I found issues":**
+- Ask user to provide specific feedback:
+  ```
+  Please describe the issues you found. You can provide:
+
+  1. **Screenshot** - Path to a screenshot showing the issue(s)
+  2. **Text Description** - Detailed description of what's wrong
+
+  Example descriptions:
+  - "The header background color is too light - should be #1a1a1a not #333333"
+  - "Button spacing is wrong - there should be 24px between buttons not 16px"
+  - "Font size on mobile is too small - headings should be 24px not 18px"
+  - "The card shadow is missing - should have shadow-lg"
+
+  What issues did you find?
+  ```
+
+- Collect user's feedback (text or screenshot path)
+- Store feedback as `user_feedback`
+- Set `design_fidelity_achieved = false` (reset, need to fix user's issues)
+- Set `user_validation_needed = true`
+- Log: "⚠️ User found issues. Launching UI Developer to address user feedback."
+- Proceed to Step 3.3.6 (Launch UI Developer with user feedback)
+
+**Step 3.3.6: Launch UI Developer with User Feedback** (Conditional - only if user found issues)
+
+IF `user_validation_needed` is true:
+
+Use Task tool with appropriate fixing agent (ui-developer or ui-developer-codex based on smart switching logic):
+
+```
+Fix the UI implementation issues identified by the USER during manual testing.
+
+**CRITICAL**: These issues were found by a human reviewer, not automated validation.
+The user manually tested the implementation and found real problems.
+
+**Iteration**: [iteration_count + 1] / [max_iterations]
+**Component**: [component_description]
+**Implementation File(s)**: [List of files]
+**Design Reference**: [design_reference]
+
+**USER FEEDBACK** (Human Manual Testing):
+[Paste user's complete feedback - text description or screenshot analysis]
+
+[If screenshot provided:]
+**User's Screenshot**: [screenshot_path]
+Please read the screenshot to understand the visual issues the user is pointing out.
+
+**Your Task:**
+1. Read all implementation files
+2. Carefully review the user's specific feedback
+3. Address EVERY issue the user mentioned:
+   - If user mentioned colors: Fix the exact color values
+   - If user mentioned spacing: Fix to exact pixel values mentioned
+   - If user mentioned typography: Fix font sizes, weights, line heights
+   - If user mentioned layout: Fix alignment, max-width, grid/flex issues
+   - If user mentioned interactive states: Fix hover, focus, active, disabled states
+   - If user mentioned responsive: Fix mobile, tablet, desktop breakpoints
+   - If user mentioned accessibility: Fix ARIA, contrast, keyboard navigation
+4. Use Edit tool to modify files
+5. Use modern React/TypeScript/Tailwind best practices:
+   - React 19 patterns
+   - Tailwind CSS 4 (utility-first, no @apply, static classes only)
+   - Mobile-first responsive design
+   - WCAG 2.1 AA accessibility
+6. Run quality checks (typecheck, lint, build)
+7. Provide detailed implementation summary explaining:
+   - Each user issue addressed
+   - Exact changes made
+   - Files modified
+   - Any trade-offs or decisions made
+
+**IMPORTANT**: User feedback takes priority over designer agent feedback.
+The user has manually tested and seen real issues that automated validation missed.
+
+Return detailed fix summary when complete.
+```
+
+Wait for fixing agent to complete.
+
+After fixes applied:
+- Set `user_validation_needed = false`
+- Increment `iteration_count`
+- Update loop metrics (previous_issues_count, etc.)
+- **Loop back to Step 3.1** (Re-run designer agent to validate fixes)
+- The loop will eventually come back to Step 3.3.5 for user validation again
+
+**End of Step 3.3.5 and 3.3.6**
 
 **Step 3.4: Determine Fixing Agent (Smart Switching Logic)**
 
@@ -638,14 +783,22 @@ Create a detailed summary including:
 ## Validation Results
 
 **Total Iterations**: [iteration_count] / [max_iterations]
-**Final Status**: [PASS ✅ / NEEDS IMPROVEMENT ⚠️ / FAIL ❌]
+**Automated Validation Status**: [PASS ✅ / NEEDS IMPROVEMENT ⚠️ / FAIL ❌]
+**User Manual Validation**: ✅ APPROVED (after [number] user feedback cycles)
 **Final Design Fidelity Score**: [score] / 60
 **Final Issues Count**: [current_issues_count]
   - CRITICAL: [count]
   - MEDIUM: [count]
   - LOW: [count]
+  - User-reported: [count] (all fixed ✅)
 
 **UI Developer Codex**: [Enabled / Disabled]
+
+**User Validation History**:
+- User feedback rounds: [number]
+- Issues found by user: [count]
+- All user issues addressed: ✅
+- Final user approval: ✅ "Looks perfect, matches design exactly"
 
 ## Iteration History
 
@@ -783,9 +936,11 @@ Would you like to:
 - Provide options for resolution
 
 ### Quality Gates:
-- Design fidelity score >= 54/60 for PASS
-- Designer assessment must be PASS to complete
-- All CRITICAL issues must be resolved
+- Design fidelity score >= 54/60 for PASS (automated)
+- Designer assessment must be PASS to proceed to user validation
+- **MANDATORY: User manual validation and approval required**
+- All CRITICAL issues must be resolved (including user-reported issues)
+- User must explicitly approve: "Looks perfect, matches design exactly"
 
 ## Success Criteria
 
@@ -793,12 +948,15 @@ The command is complete when:
 1. ✅ UI component implemented from scratch
 2. ✅ Designer validated against design reference
 3. ✅ Design fidelity score >= 54/60 (or user accepted lower score)
-4. ✅ All CRITICAL issues resolved
-5. ✅ Accessibility compliance verified (WCAG 2.1 AA)
-6. ✅ Responsive design tested (mobile/tablet/desktop)
-7. ✅ Code quality checks passed (typecheck/lint/build)
-8. ✅ Comprehensive report provided
-9. ✅ User acknowledges completion
+4. ✅ **MANDATORY: User manually validated and approved the implementation**
+5. ✅ All CRITICAL issues resolved (including user-reported issues)
+6. ✅ Accessibility compliance verified (WCAG 2.1 AA)
+7. ✅ Responsive design tested (mobile/tablet/desktop)
+8. ✅ Code quality checks passed (typecheck/lint/build)
+9. ✅ Comprehensive report provided
+10. ✅ User acknowledges completion
+
+**CRITICAL**: Item #4 (User manual validation) is MANDATORY. The workflow cannot complete without explicit user approval after manual testing.
 
 ## Smart Agent Switching Examples
 

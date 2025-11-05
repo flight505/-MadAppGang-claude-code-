@@ -202,10 +202,156 @@ Wait for ui-developer agent to return summary of applied changes.
 
 After ui-developer agent completes:
 - Increment iteration count
-- If iteration < 10: Go back to Step 3.1 (re-run designer agent)
-- If iteration = 10: Exit loop and proceed to Phase 4
+- If designer assessment is NOT "PASS" AND iteration < 10:
+  * Go back to Step 3.1 (re-run designer agent)
+- If designer assessment is "PASS" OR iteration = 10:
+  * Log: "Automated validation complete. Proceeding to user validation."
+  * Exit loop and proceed to Phase 3.5 (User Manual Validation)
 
 Track and display progress: "Iteration X/10 complete"
+
+### Phase 3.5: MANDATORY User Manual Validation Gate
+
+**IMPORTANT**: This step is MANDATORY before generating the final report. Never skip this step.
+
+Even when designer agent claims "PASS", the user must manually verify the implementation against the real design reference.
+
+**Present to user:**
+
+```
+🎯 Automated Validation Complete - User Verification Required
+
+After [iteration_count] iterations, the designer agent has completed its review.
+
+**Validation Summary:**
+- Component: [component_description]
+- Iterations completed: [iteration_count] / 10
+- Last designer assessment: [PASS ✅ / NEEDS IMPROVEMENT ⚠️ / FAIL ❌]
+- Final design fidelity score: [score] / 60
+- Issues remaining (automated): [count]
+
+However, automated validation can miss subtle issues. Please manually verify the implementation:
+
+**What to Check:**
+1. Open the application at: [app_url or remote URL]
+2. View the component: [component_description]
+3. Compare against design reference: [design_reference]
+4. Check for:
+   - Colors match exactly (backgrounds, text, borders)
+   - Spacing and layout are pixel-perfect
+   - Typography (fonts, sizes, weights, line heights) match
+   - Visual elements (shadows, borders, icons) match
+   - Interactive states work correctly (hover, focus, active, disabled)
+   - Responsive design works on mobile, tablet, desktop
+   - Accessibility features work properly (keyboard nav, ARIA)
+   - Overall visual fidelity matches the design
+
+Please manually test the implementation and let me know:
+```
+
+Use AskUserQuestion to ask:
+```
+Does the implementation match the design reference?
+
+Please manually test the UI and compare it to the design.
+
+Options:
+1. "Yes - Looks perfect, matches design exactly" → Approve and generate report
+2. "No - I found issues" → Provide feedback to continue fixing
+```
+
+**If user selects "Yes - Looks perfect":**
+- Log: "✅ User approved! Implementation verified by human review."
+- Proceed to Phase 4 (Generate Final Report)
+
+**If user selects "No - I found issues":**
+- Ask user to provide specific feedback:
+  ```
+  Please describe the issues you found. You can provide:
+
+  1. **Screenshot** - Path to a screenshot showing the issue(s)
+  2. **Text Description** - Detailed description of what's wrong
+
+  Example descriptions:
+  - "The header background color is too light - should be #1a1a1a not #333333"
+  - "Button spacing is wrong - there should be 24px between buttons not 16px"
+  - "Font size on mobile is too small - headings should be 24px not 18px"
+  - "The card shadow is missing - should have shadow-lg"
+  - "Profile avatar should be 64px not 48px"
+  - "Text alignment is off-center, should be centered"
+
+  What issues did you find?
+  ```
+
+- Collect user's feedback (text or screenshot path)
+- Store feedback as `user_feedback`
+- Check if we've exceeded max total iterations (10 automated + 5 user feedback rounds = 15 total):
+  * If exceeded: Ask user if they want to continue or accept current state
+  * If not exceeded: Proceed with user feedback fixes
+
+- Log: "⚠️ User found issues. Launching UI Developer to address user feedback."
+- Use Task tool with appropriate fixing agent (ui-developer or ui-developer-codex):
+
+  ```
+  Fix the UI implementation issues identified by the USER during manual testing.
+
+  **CRITICAL**: These issues were found by a human reviewer, not automated validation.
+  The user manually tested the implementation and found real problems.
+
+  **Component**: [component_description]
+  **Design Reference**: [design_reference]
+  **Implementation File(s)**: [found file paths]
+  **Application URL**: [app_url or remote URL]
+
+  **USER FEEDBACK** (Human Manual Testing):
+  [Paste user's complete feedback - text description or screenshot analysis]
+
+  [If screenshot provided:]
+  **User's Screenshot**: [screenshot_path]
+  Please read the screenshot to understand the visual issues the user is pointing out.
+
+  **Your Task:**
+  1. Fetch design reference (Figma MCP / Chrome DevTools / Read file)
+  2. Read all implementation files
+  3. Carefully review the user's specific feedback
+  4. Address EVERY issue the user mentioned:
+     - If user mentioned colors: Fix to exact hex values or Tailwind classes
+     - If user mentioned spacing: Fix to exact pixel values mentioned
+     - If user mentioned typography: Fix font sizes, weights, line heights
+     - If user mentioned layout: Fix alignment, max-width, grid/flex issues
+     - If user mentioned visual elements: Fix shadows, borders, border-radius
+     - If user mentioned interactive states: Fix hover, focus, active, disabled
+     - If user mentioned responsive: Fix mobile, tablet, desktop breakpoints
+     - If user mentioned accessibility: Fix ARIA, contrast, keyboard navigation
+  5. Use Edit tool to modify files
+  6. Use modern React/TypeScript/Tailwind best practices:
+     - React 19 patterns
+     - Tailwind CSS 4 (utility-first, no @apply, static classes only)
+     - Mobile-first responsive design
+     - WCAG 2.1 AA accessibility
+  7. Run quality checks (typecheck, lint, build)
+  8. Provide detailed implementation summary explaining:
+     - Each user issue addressed
+     - Exact changes made
+     - Files modified
+     - Any trade-offs or decisions made
+
+  **IMPORTANT**: User feedback takes priority over designer agent feedback.
+  The user has manually tested and seen real issues that automated validation missed.
+
+  Return detailed fix summary when complete.
+  ```
+
+- Wait for fixing agent to complete
+
+- After fixes applied:
+  * Log: "User-reported issues addressed. Re-running designer validation."
+  * Increment `user_feedback_round` counter
+  * Re-run designer agent (Step 3.1) to validate fixes
+  * Loop back to Phase 3.5 (User Manual Validation) to verify with user again
+  * Continue until user approves
+
+**End of Phase 3.5 (User Manual Validation Gate)**
 
 ### Phase 4: Generate Final Report
 
@@ -219,12 +365,14 @@ After loop completes (10 iterations OR designer reports no issues):
 
    ## Validating: [user description, e.g., "user profile page"]
    ## Implementation: [file path(s)]
-   ## Iterations: [count]/10
+   ## Automated Iterations: [count]/10
+   ## User Feedback Rounds: [count]
    ## Third-Party Review: [Enabled/Disabled]
+   ## User Manual Validation: ✅ APPROVED
 
    ## Iteration History:
 
-   ### Iteration 1
+   ### Iteration 1 (Automated)
    **Designer Review Report:**
    [issues found]
 
@@ -235,37 +383,122 @@ After loop completes (10 iterations OR designer reports no issues):
    **UI Developer Changes:**
    [fixes applied]
 
-   ### Iteration 2
+   ### Iteration 2 (Automated)
+   ...
+
+   ### User Validation Round 1
+   **User Feedback:**
+   [user's description or screenshot reference]
+
+   **Issues Reported by User:**
+   - [Issue 1]
+   - [Issue 2]
+   ...
+
+   **UI Developer Fixes:**
+   [fixes applied based on user feedback]
+
+   **Designer Re-validation:**
+   [designer assessment after user-requested fixes]
+
+   ### User Validation Round 2
    ...
 
    ## Final Status:
-   [Success - No issues remaining | Needs Review - X issues remain]
+   **Automated Validation**: [PASS ✅ / NEEDS IMPROVEMENT ⚠️ / FAIL ❌]
+   **User Manual Validation**: ✅ APPROVED
+   **Overall**: Success - Implementation matches design reference
 
    ## Summary:
-   - Total issues found: X
-   - Total issues fixed: Y
-   - Remaining issues: Z
+   - Total automated iterations: [count]
+   - Total user feedback rounds: [count]
+   - Issues found by automation: X
+   - Issues found by user: Y
+   - Total issues fixed: Z
+   - User approval: ✅ "Looks perfect, matches design exactly"
    ```
 
 3. Save final screenshots:
-   - `reference.png` (original design)
-   - `implementation-final.png` (final implementation)
+   - `reference.png` (original design screenshot from Figma/URL/file)
+   - `implementation-final.png` (final implementation screenshot from app URL)
 
-4. Generate `comparison.html` with side-by-side view
+4. Generate `comparison.html` with side-by-side visual comparison:
+   - **MUST display both screenshots side-by-side** (not text)
+   - Left side: `reference.png` (design reference)
+   - Right side: `implementation-final.png` (final implementation)
+   - Include zoom/pan controls for detailed inspection
+   - Show validation summary below screenshots
+   - Format:
+     ```html
+     <!DOCTYPE html>
+     <html>
+     <head>
+       <title>UI Validation - Side-by-Side Comparison</title>
+       <style>
+         .comparison-container { display: flex; gap: 20px; }
+         .screenshot-panel { flex: 1; }
+         .screenshot-panel img { width: 100%; border: 1px solid #ccc; }
+         .screenshot-panel h3 { text-align: center; }
+       </style>
+     </head>
+     <body>
+       <h1>UI Validation: [component_description]</h1>
+       <div class="comparison-container">
+         <div class="screenshot-panel">
+           <h3>Design Reference</h3>
+           <img src="reference.png" alt="Design Reference">
+         </div>
+         <div class="screenshot-panel">
+           <h3>Final Implementation</h3>
+           <img src="implementation-final.png" alt="Final Implementation">
+         </div>
+       </div>
+       <div class="summary">
+         [Include validation summary with user approval]
+       </div>
+     </body>
+     </html>
+     ```
 
 ### Phase 5: Present Results to User
 
 Display summary:
-- Total iterations run
+- Total automated iterations run
+- Total user feedback rounds
+- User manual validation status: ✅ APPROVED
 - Final status (success/needs review)
 - Path to detailed report
 - Link to comparison HTML
 
+Present:
+```
+✅ UI Validation Complete!
+
+**Validation Summary:**
+- Component: [component_description]
+- Automated iterations: [count] / 10
+- User feedback rounds: [count]
+- User manual validation: ✅ APPROVED
+
+**Results:**
+- Issues found by automation: [count]
+- Issues found by user: [count]
+- Total issues fixed: [count]
+- Final designer assessment: [PASS/NEEDS IMPROVEMENT/FAIL]
+- **User approval**: ✅ "Looks perfect, matches design exactly"
+
+**Report Location:**
+- Detailed report: /tmp/ui-validation-[timestamp]/report.md
+- Side-by-side comparison: /tmp/ui-validation-[timestamp]/comparison.html
+
+The implementation has been validated and approved by human review!
+```
+
 Ask user for next action:
 - "View detailed report" → Open report directory
-- "Continue with 10 more iterations" → Restart Phase 3
-- "Accept changes" → Show git diff, offer to commit
-- "Manual review needed" → Exit
+- "View git diff" → Show git diff of changes
+- "Accept and commit changes" → Commit with validation report
+- "Done" → Exit
 
 ### Implementation Notes
 
@@ -337,6 +570,9 @@ Ask user for next action:
 3. UI Developer ONLY implements fixes, does NOT validate
 4. UI Developer Codex (optional) provides expert third-party review
 5. Loop continues until 10 iterations OR designer reports no issues (PASS)
+6. **MANDATORY: User manual validation required after automated loop completes**
+7. User can provide feedback with screenshots or text descriptions
+8. User feedback triggers additional fixing rounds until user approves
 
 ### Example User Flow
 
@@ -395,8 +631,35 @@ Command: "Iteration 2/10 complete. 2 more issues addressed."
 Command: [Re-runs designer agent]
 Designer: [Reports: "Assessment: PASS - No issues found, implementation matches design"]
 
-Command: "Validation successful! No issues remaining."
-Command: [Exits loop early - only 3 iterations needed]
+Command: "Automated validation passed! Proceeding to user manual validation."
+Command: [Exits automated loop - 3 iterations completed]
+
+━━━ User Manual Validation ━━━
+
+Command: "🎯 Automated Validation Passed - User Verification Required"
+Command: [Explains what to check and asks user to verify]
+
+User: [Tests the UI manually, compares to Figma design]
+User: "No - I found issues"
+
+Command: "Please describe the issues you found."
+User: "The button text color is too light on the blue background - hard to read. Should be white #ffffff not gray #cccccc. Also the spacing between the header and content is too tight - should be 32px not 16px."
+
+Command: [Stores user feedback]
+Command: "⚠️ User found 2 issues. Launching UI Developer."
+
+Command: [Launches ui-developer with user's specific feedback]
+UI Developer: [Fixes the text color to #ffffff and spacing to 32px, runs quality checks]
+UI Developer: "Fixed button text color and header spacing as requested."
+
+Command: "User-reported issues addressed. Re-running designer validation."
+Command: [Launches designer agent]
+Designer: [Validates fixes, reports: "PASS - Issues resolved"]
+
+Command: "I've addressed all the issues you reported. Please verify the fixes."
+User: "Yes - Looks perfect, matches design exactly"
+
+Command: "✅ User approved! Implementation verified by human review."
 
 ━━━ Final Report ━━━
 
@@ -404,13 +667,26 @@ Command: [Creates /tmp/ui-validation-20251104-235623/]
 Command: [Saves report.md, screenshots, comparison.html]
 
 Command: [Displays summary]
-"✓ Validation complete after 3 iterations
-  Total issues found: 7
-  Total issues fixed: 7
-  Remaining issues: 0
+"✅ UI Validation Complete!
 
-  Report: /tmp/ui-validation-20251104-235623/report.md
-  Comparison: /tmp/ui-validation-20251104-235623/comparison.html"
+**Validation Summary:**
+- Component: user profile page
+- Automated iterations: 3 / 10
+- User feedback rounds: 1
+- User manual validation: ✅ APPROVED
+
+**Results:**
+- Issues found by automation: 7
+- Issues found by user: 2
+- Total issues fixed: 9
+- Final designer assessment: PASS ✅
+- **User approval**: ✅ "Looks perfect, matches design exactly"
+
+**Report Location:**
+- Detailed report: /tmp/ui-validation-20251104-235623/report.md
+- Side-by-side comparison: /tmp/ui-validation-20251104-235623/comparison.html
+
+The implementation has been validated and approved by human review!"
 
 Command: [Asks for next action]
 ```
