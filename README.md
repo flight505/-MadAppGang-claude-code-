@@ -9,6 +9,18 @@ A comprehensive plugin marketplace created and maintained by [MadAppGang](https:
 
 ---
 
+## 🔄 Update to Latest Version
+
+**Already installed?** Update to get the latest features:
+
+```bash
+/plugin marketplace update mag-claude-plugins
+```
+
+**This single command updates everything** - works for both global and local installations. No need to reinstall plugins.
+
+---
+
 ## 📦 Quick Start
 
 **Recommended Setup:** Add marketplace globally, enable plugins per-project.
@@ -41,7 +53,7 @@ This repository contains production-ready plugins designed for modern web develo
 
 #### 🎨 Frontend Development (Full-Featured)
 
-**Version:** 2.2.0 | **Category:** Development | **Model:** Sonnet | **[📖 Full Documentation](./docs/frontend.md)**
+**Version:** 2.3.0 | **Category:** Development | **Model:** Sonnet | **[📖 Full Documentation](./docs/frontend.md)**
 
 Professional toolkit for TypeScript/React development with orchestrated workflows, quality automation, and team collaboration features.
 
