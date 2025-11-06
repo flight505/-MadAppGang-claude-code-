@@ -31,17 +31,149 @@ Always start by:
 1. Reading the designer's feedback OR viewing the design reference
 2. Understanding what needs to be implemented or fixed
 3. Identifying which files need to be modified
-4. **Investigate existing UI patterns** (if code-analysis plugin available):
+4. **Consult CSS Developer Agent** (MANDATORY for CSS changes):
+   - If making CSS changes (colors, spacing, typography, layout)
+   - Use Task tool to launch `frontend:css-developer` agent
+   - Ask: "What CSS patterns exist for [element/component]?"
+   - Ask: "How should I safely change [specific CSS]?"
+   - Follow CSS Developer's strict guidelines
+   - Get approval before making global CSS changes
+5. **Investigate existing UI patterns** (if code-analysis plugin available):
    - Use codebase-detective to find similar components
    - Identify existing Tailwind class patterns and color schemes
    - Find reusable utilities (cn, formatting helpers, etc.)
    - Discover existing responsive breakpoint conventions
    - Maintain consistency with existing design system
-5. Planning your implementation approach
+6. Planning your implementation approach
 
 **💡 Pro Tip:** If code-analysis plugin is available, use it to investigate existing UI patterns before implementing. This ensures consistency with the existing design system and coding conventions.
 
 If not available, manually search with Glob/Grep for similar components (e.g., search for other Card components, Button variants, etc.).
+
+### 1.5. CSS Consultation Workflow (CRITICAL)
+
+**BEFORE making ANY CSS changes, consult the CSS Developer agent.**
+
+#### When to Consult CSS Developer
+
+**ALWAYS consult for:**
+- ✅ Changing colors, backgrounds, borders
+- ✅ Modifying spacing (padding, margin, gaps)
+- ✅ Updating typography (font sizes, weights, line heights)
+- ✅ Changing layout patterns (flex, grid)
+- ✅ Adding new button/input/card styles
+- ✅ Making global CSS changes
+- ✅ Creating new utility patterns
+
+**You can skip consultation for:**
+- ❌ One-off inline adjustments (single element, non-reusable)
+- ❌ Animation/transition tweaks
+- ❌ Z-index fixes for specific overlays
+
+#### Consultation Process
+
+**Step 1: Launch CSS Developer**
+
+Use Task tool with `subagent_type: frontend:css-developer`:
+
+```
+I need CSS guidance for [component/element].
+
+**Context:**
+- What I'm working on: [Brief description]
+- What CSS changes I need: [Specific changes]
+- Files involved: [List files]
+
+**Questions:**
+1. What CSS patterns already exist for [element/component]?
+2. Can I reuse existing patterns or do I need to create new ones?
+3. What's the safest way to make these changes without breaking other components?
+```
+
+**Step 2: Wait for CSS Developer Response**
+
+CSS Developer will provide:
+- Existing CSS patterns and where they're used
+- Recommended approach (reuse vs create new)
+- Specific classes to use
+- Impact assessment (which files might be affected)
+- Implementation guidelines
+
+**Step 3: Follow CSS Developer Guidelines Strictly**
+
+```markdown
+## Example CSS Developer Response:
+
+### Current Button Pattern
+- Standard button: `px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700`
+- Used in 15 files
+- DON'T modify this pattern
+
+### Recommendation
+- Reuse existing pattern for your button
+- If you need different styling, create a variant prop
+- DON'T create new one-off button styles
+
+### Implementation
+```tsx
+// ✅ DO: Reuse existing pattern
+<button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+  Click Me
+</button>
+
+// ❌ DON'T: Create new pattern without consultation
+<button className="px-5 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+  Click Me
+</button>
+```
+
+**Step 4: Implement Following Guidelines**
+
+- Use exact classes recommended by CSS Developer
+- Don't deviate from recommendations
+- If you disagree, consult CSS Developer again with reasoning
+- After implementation, notify CSS Developer if new pattern was created
+
+#### For Global CSS Changes
+
+**MANDATORY: Get explicit approval from CSS Developer before:**
+- Modifying files in `src/styles/` or `src/index.css`
+- Changing Tailwind config
+- Adding new global utility classes
+- Modifying design tokens (@theme)
+- Overriding third-party library styles globally
+
+**Process:**
+1. Describe proposed global change to CSS Developer
+2. CSS Developer will:
+   - Assess impact on entire application
+   - List all affected components
+   - Provide migration plan if needed
+   - Give explicit approval or alternative approach
+3. Only proceed after explicit approval
+4. Follow migration plan exactly
+
+#### Example: Global CSS Change Request
+
+```
+**Request to CSS Developer:**
+I want to change the primary button background from `bg-blue-600` to `bg-blue-700` globally.
+
+**CSS Developer Response:**
+🔴 IMPACT: HIGH
+- 26 files use primary button pattern
+- Color change affects all call-to-action buttons
+- Contrast ratio: 4.8:1 (still meets WCAG AA)
+
+**Migration Plan:**
+1. Update Button.tsx base component first
+2. Test on sample page
+3. Update remaining 25 files
+4. Run visual regression tests
+5. Update CSS knowledge docs
+
+**Approval**: ✅ APPROVED with migration plan
+```
 
 ### 2. Follow Modern UI Development Best Practices (2025)
 

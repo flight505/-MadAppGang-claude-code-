@@ -12,12 +12,14 @@
 A complete Claude Code plugin marketplace with enterprise-level architecture:
 
 - **Plugin Marketplace** (`mag-claude-plugins`)
-- **Frontend Development Plugin** (v2.4.1) - Full-featured Sonnet-powered
-  - 12 Specialized Agents (including Designer + Designer-Codex + UI Developer ecosystem)
+- **Frontend Development Plugin** (v2.5.0) - Full-featured Sonnet-powered
+  - 13 Specialized Agents (including CSS Developer + Designer + Designer-Codex + UI Developer ecosystem)
   - 6 Slash Commands
   - 3 Skills
   - MCP Servers (auto-configured)
+  - CSS architecture management with knowledge files
   - Pixel-perfect UI implementation with parallel design validation
+  - Task decomposition for isolated, parallel implementation
 - **Code Analysis Plugin** (v1.1.0) - Deep codebase investigation
   - 1 Specialized Agent (codebase-detective)
   - 2 Skills (deep-analysis + semantic-code-search)
@@ -74,7 +76,7 @@ claude-code/
     │   ├── plugin.json
     │   ├── DEPENDENCIES.md
     │   ├── README.md
-    │   ├── agents/                   (12 agents)
+    │   ├── agents/                   (13 agents)
     │   ├── commands/                 (6 commands)
     │   ├── skills/                   (3 skills)
     │   └── mcp-servers/
@@ -331,11 +333,11 @@ Include marketplace in project settings (requires folder trust):
 ✅ **Production Ready**
 
 **2 Complete Plugins:**
-1. **Frontend** (v2.4.1) - 12 agents, 6 commands, 3 skills - Full-featured Sonnet with parallel design validation
+1. **Frontend** (v2.5.0) - 13 agents, 6 commands, 3 skills - Full-featured Sonnet with CSS architecture management and task decomposition
 2. **Code Analysis** (v1.1.0) - 1 agent, 1 command, 2 skills - Deep investigation with semantic search
 
 **Features:**
-- 12+ specialized agents
+- 13+ specialized agents
 - **Designer + UI Developer ecosystem** (3 agents for pixel-perfect implementation)
 - 7 slash commands (including /implement-ui with intelligent agent switching)
 - 5 workflow skills (including semantic-code-search for claude-context MCP)
@@ -353,4 +355,4 @@ Include marketplace in project settings (requires folder trust):
 
 **Maintained by:** Jack Rudenko @ MadAppGang
 **Last Updated:** November 6, 2024
-**Version:** 2.4.1
+**Version:** 2.5.0

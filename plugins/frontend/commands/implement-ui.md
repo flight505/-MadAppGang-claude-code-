@@ -246,109 +246,417 @@ If any validation fails, re-ask for that specific input.
 
 - **Update TodoWrite**: Mark "PHASE 1: Validate inputs" as completed
 
-### PHASE 2: Initial Implementation from Scratch
+### PHASE 1.5: Task Analysis & Decomposition
 
-**Step 1: Launch UI Developer for Initial Implementation**
+**CRITICAL: Before implementing anything, decompose the work into independent, isolated tasks to avoid breaking changes.**
 
-- **Update TodoWrite**: Mark "PHASE 2: Launch UI Developer for initial implementation" as in_progress
+**Step 1: Launch Architect for Task Analysis**
 
-Use Task tool with `subagent_type: frontend:ui-developer`:
+- **Update TodoWrite**: Mark "PHASE 1.5: Analyze and decompose implementation tasks" as in_progress
+
+Use Task tool with `subagent_type: frontend:architect`:
 
 ```
-Implement the following UI component(s) from scratch based on the design reference.
+Analyze the design reference and decompose the implementation into independent, isolated tasks.
 
-**Design Reference**: [design_reference - Figma URL, file path, or remote URL]
+**Design Reference**: [design_reference]
 **Component Description**: [component_description]
-**Target Location**: [target_location or suggested path]
-**Application URL**: [app_url]
+**Target Location**: [target_location]
 
 **Your Task:**
 
-1. **Analyze the design reference:**
-   - If Figma: Use Figma MCP to fetch the design screenshot and inspect design specs
-   - If Remote URL: Use Chrome DevTools MCP to capture screenshot
-   - If Local file: Read the file to view the design
+1. **Analyze the design reference thoroughly:**
+   - If Figma: Use Figma MCP to fetch design and inspect component structure
+   - If Screenshot/URL: Use Read or WebFetch to analyze visual structure
+   - Identify all distinct UI components, screens, and features
+   - Understand the component hierarchy and relationships
 
-2. **Plan the component structure:**
-   - Determine component hierarchy (parent/children)
-   - Identify reusable sub-components
-   - Plan file structure based on atomic design principles
+2. **Decompose into independent tasks:**
+   - Break down into atomic, isolated implementation units
+   - Each task should represent ONE component, screen, or feature
+   - Each task should modify DIFFERENT files (no overlap)
+   - Tasks should be as independent as possible
 
-3. **Implement the UI components from scratch using modern best practices:**
+3. **For each task, provide:**
+   - **Task ID**: Unique identifier (e.g., "task-1", "task-2")
+   - **Task Name**: Clear, descriptive name (e.g., "UserAvatar Component")
+   - **Description**: What this task implements (2-3 sentences)
+   - **Files**: Which files this task will create/modify (be specific)
+   - **Dependencies**: Which task IDs this depends on (empty array if none)
+   - **Priority**: Number 1-5 (1 = implement first, 5 = implement last)
+   - **Design Section**: Specific part of design this task addresses
+   - **Complexity**: "low", "medium", or "high"
+
+4. **Identify dependencies:**
+   - Task B depends on Task A if B uses/imports components from A
+   - Example: "UserProfile card" depends on "UserAvatar component"
+   - Minimize dependencies to enable parallel execution
+
+5. **Determine execution strategy:**
+   - Group tasks by priority level
+   - Priority 1 tasks have no dependencies → can run in parallel
+   - Priority 2 tasks depend on Priority 1 → wait for Priority 1
+   - etc.
+
+6. **Output format:**
+
+Return a structured task list in this EXACT format:
+
+```json
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "name": "UserAvatar Component",
+      "description": "Circular avatar component with image display, fallback initials, online status indicator, and size variants (sm/md/lg).",
+      "files": ["src/components/UserAvatar.tsx"],
+      "dependencies": [],
+      "priority": 1,
+      "designSection": "User Avatar (top-left of profile card)",
+      "complexity": "low"
+    },
+    {
+      "id": "task-2",
+      "name": "UserProfile Card Component",
+      "description": "Card component displaying user information, statistics, and action buttons. Imports and uses UserAvatar component.",
+      "files": ["src/components/UserProfile.tsx"],
+      "dependencies": ["task-1"],
+      "priority": 2,
+      "designSection": "Complete profile card with avatar, name, stats",
+      "complexity": "medium"
+    }
+  ],
+  "executionStrategy": {
+    "round1": ["task-1"],
+    "round2": ["task-2"]
+  },
+  "summary": "Decomposed into 2 tasks: 1 atomic component (avatar) and 1 composite component (profile card). Avatar will be implemented first, then profile card will integrate it."
+}
+```
+
+**Important Guidelines:**
+- Create SMALL, focused tasks (one component each)
+- Ensure tasks don't overlap in files they modify
+- Minimize dependencies (enables parallel execution)
+- Be specific about which files each task touches
+- If design has 5 components, create 5 separate tasks
+- Each task should take 1-3 iterations to complete (not 10+)
+
+Return the complete task decomposition plan.
+```
+
+Wait for architect agent to return task decomposition plan.
+
+**Step 2: Review and Validate Task Decomposition**
+
+After architect returns the task plan:
+
+1. **Validate task structure:**
+   - Each task has all required fields
+   - File paths are specific (not vague)
+   - Dependencies form a valid DAG (no cycles)
+   - Tasks are truly independent (minimal overlap)
+
+2. **Present task plan to user:**
+
+```
+📋 Implementation Task Plan
+
+I've analyzed the design and decomposed it into [N] independent tasks:
+
+**Round 1 (Parallel - No Dependencies):**
+- Task 1: [name] - [files]
+- Task 3: [name] - [files]
+
+**Round 2 (After Round 1):**
+- Task 2: [name] - [files] (depends on Task 1)
+
+**Round 3 (After Round 2):**
+- Task 4: [name] - [files] (depends on Task 2, Task 3)
+
+**Execution Strategy:**
+Each task will run in its own focused loop:
+- Implement → Validate → Fix → Validate → Complete
+- Tasks in same round run in PARALLEL
+- Changes to Task 1 won't break Task 2 (isolated files)
+
+This approach ensures:
+✅ Small, focused iterations
+✅ No breaking changes between tasks
+✅ Parallel execution for speed
+✅ Clear progress tracking
+
+Proceed with this plan?
+```
+
+3. **Get user confirmation:**
+
+Use AskUserQuestion:
+```
+Does this task decomposition plan look good?
+
+Options:
+- "Yes - Proceed with this plan"
+- "No - I want to adjust the tasks" (ask for feedback)
+```
+
+If user says "No":
+- Ask: "What adjustments would you like?"
+- Collect feedback
+- Re-run architect with updated requirements
+- Present revised plan
+
+If user says "Yes":
+- Store task plan for execution
+- Proceed to PHASE 2
+
+- **Update TodoWrite**: Mark "PHASE 1.5: Analyze and decompose implementation tasks" as completed
+
+### PHASE 2: Multi-Task Parallel Implementation
+
+**CRITICAL: Execute tasks in rounds based on dependencies. Tasks in same round run IN PARALLEL.**
+
+- **Update TodoWrite**: Mark "PHASE 2: Multi-task parallel implementation" as in_progress
+
+**Execution Strategy:**
+
+From the task decomposition plan, we have an `executionStrategy` that groups tasks by dependency level:
+```json
+{
+  "round1": ["task-1", "task-3", "task-4"],  // No dependencies
+  "round2": ["task-2", "task-5"],            // Depend on round1
+  "round3": ["task-6"]                       // Depends on round2
+}
+```
+
+For each round:
+
+**Step 1: Execute Round N Tasks in Parallel**
+
+For each task in current round:
+
+1. **Prepare task-specific context:**
+   - Extract task details from decomposition plan
+   - Identify task's design section
+   - Identify task's files
+   - Identify task's dependencies (should be already complete)
+
+2. **Launch UI Developer for THIS task only:**
+
+Use Task tool with `subagent_type: frontend:ui-developer` (one per task, all in parallel if multiple tasks):
+
+```
+Implement ONLY the following specific task. Do NOT implement other tasks.
+
+**Task ID**: [task.id]
+**Task Name**: [task.name]
+**Task Description**: [task.description]
+
+**Design Reference**: [design_reference]
+**Focus on Design Section**: [task.designSection]
+**Files to Create/Modify**: [task.files] (ONLY these files, no others!)
+**Target Location**: [target_location]
+**Application URL**: [app_url]
+
+**Dependencies (Already Complete):**
+[If task.dependencies is not empty, list completed tasks that this depends on]
+- Task [dep-id]: [dep-name] → You can import from [dep-files]
+
+**Your Task:**
+
+1. **Analyze ONLY your design section:**
+   - If Figma: Use Figma MCP to fetch design, focus on [task.designSection]
+   - If Screenshot/URL: Focus on the specific section for this task
+   - Understand what THIS component needs to do
+
+2. **Implement THIS component ONLY:**
    - React 19 with TypeScript
-   - Tailwind CSS 4 (utility-first, no @apply, static classes only)
+   - Tailwind CSS 4 (utility-first, static classes only)
    - Mobile-first responsive design
    - Accessibility (WCAG 2.1 AA, ARIA attributes)
-   - Use existing design system components if available (shadcn/ui, etc.)
+   - Match the design for THIS component exactly
 
-4. **Match the design reference exactly:**
-   - Colors (use Tailwind theme colors or exact hex values)
-   - Typography (font families, sizes, weights, line heights)
-   - Spacing (padding, margins, gaps using Tailwind scale)
-   - Layout (flexbox, grid, alignment)
-   - Visual elements (borders, shadows, border-radius)
-   - Interactive states (hover, focus, active, disabled)
+3. **Create/modify ONLY the specified files:**
+   - Files: [task.files]
+   - Do NOT touch other files
+   - Use Write tool for new files
+   - Use Edit tool if modifying existing files
 
-5. **Create component files in target location:**
-   - Use Write tool to create new files
-   - Follow project conventions for naming and structure
-   - Include proper TypeScript types
-   - Add JSDoc comments for exported components
+4. **Import dependencies if needed:**
+   [If task has dependencies:]
+   - Import components from completed tasks: [list dependency files]
+   - Example: `import { UserAvatar } from './UserAvatar'`
 
-6. **Ensure code quality:**
+5. **Ensure code quality for this task:**
    - Run typecheck: `npx tsc --noEmit`
    - Run linter: `npm run lint`
-   - Run build: `npm run build`
-   - Fix any errors before finishing
+   - Fix any errors in THIS task's files only
 
-7. **Provide implementation summary:**
-   - Files created (paths and purpose)
+6. **Provide implementation summary:**
+   - Files created/modified for THIS task
    - Components implemented
-   - Key decisions made
-   - Any assumptions or notes
+   - Integration points with dependencies
+   - Any issues or blockers
 
-**Important:**
-- This is a brand new implementation from scratch
-- Do NOT edit existing files unless integrating with existing components
-- Follow the project's existing patterns and conventions
-- Ensure the component is accessible and responsive
-- Use modern React/TypeScript/Tailwind best practices (2025)
+**CRITICAL CONSTRAINTS:**
+- ❌ Do NOT implement other tasks
+- ❌ Do NOT modify files outside [task.files]
+- ❌ Do NOT try to implement everything at once
+- ✅ Focus ONLY on THIS task
+- ✅ Keep changes isolated to THIS task's files
+- ✅ Import and use components from dependencies
 
-Return a detailed implementation summary when complete.
+Return implementation summary when complete.
 ```
 
-Wait for ui-developer to complete initial implementation.
+**IMPORTANT: If multiple tasks in this round, launch ALL of them IN PARALLEL using a SINGLE message with MULTIPLE Task tool calls.**
 
-**Step 2: Review Implementation Summary**
-
-- Document files created
-- Document components implemented
-- Note any issues reported by ui-developer
-
-- **Update TodoWrite**: Mark "PHASE 2: Launch UI Developer for initial implementation" as completed
-
-### PHASE 3: Validation and Adaptive Fixing Loop
-
-**Initialize Loop Variables:**
+Example for Round 1 with 3 tasks:
 ```
-iteration_count = 0
-max_iterations = 10
-previous_issues_count = None
-current_issues_count = None
-last_agent_used = None
-ui_developer_consecutive_failures = 0
-codex_consecutive_failures = 0
-design_fidelity_achieved = false
-iteration_history = []
+Single message with:
+- Task tool call for task-1 (ui-developer)
+- Task tool call for task-3 (ui-developer)
+- Task tool call for task-4 (ui-developer)
+
+All three execute in parallel, each working on different files.
 ```
 
-- **Update TodoWrite**: Mark "PHASE 3: Start validation and iterative fixing loop" as in_progress
+3. **Wait for all tasks in round to complete**
 
-**Loop: While iteration_count < max_iterations AND NOT design_fidelity_achieved**
+4. **Review round results:**
+   - Document which tasks completed successfully
+   - Document files created for each task
+   - Note any issues or blockers per task
 
-**Step 3.1: Launch Designer Agent(s) for Parallel Validation**
+**Step 2: Move to Next Round**
 
-**IMPORTANT**: Launch designer and designer-codex agents IN PARALLEL using a SINGLE message with MULTIPLE Task tool calls (if Codex is enabled).
+- If more rounds exist, repeat Step 1 for next round
+- If all rounds complete, proceed to PHASE 3
+
+- **Update TodoWrite**: Mark "PHASE 2: Multi-task parallel implementation" as completed
+
+### PHASE 3: Per-Task Validation Loops
+
+**CRITICAL: Each task gets its own isolated validation loop. Changes to Task 1 won't break Task 2.**
+
+- **Update TodoWrite**: Mark "PHASE 3: Per-task validation and fixing loops" as in_progress
+
+**For EACH task from the decomposition plan (in execution order):**
+
+### Task Loop: [Task ID] - [Task Name]
+
+**Initialize task loop variables:**
+```
+task_iteration_count = 0
+max_task_iterations = 5  // Per task, not global
+task_design_fidelity_achieved = false
+task_issues_history = []
+```
+
+Log: "Starting validation loop for Task [task.id]: [task.name]"
+
+**Loop: While task_iteration_count < max_task_iterations AND NOT task_design_fidelity_achieved**
+
+**Step 3.1: Launch Designer Agent(s) for Task-Focused Parallel Validation**
+
+**IMPORTANT**:
+- Validate ONLY THIS TASK's component/screen
+- Launch designer and designer-codex IN PARALLEL (if Codex enabled)
+- Focus validation on THIS TASK's design section and files
+
+**Designer Agent** (always runs):
+
+Use Task tool with `subagent_type: frontend:designer`:
+
+```
+Review ONLY the component(s) for Task [task.id] against the design reference.
+
+**CRITICAL**:
+- Be PRECISE and CRITICAL
+- Validate ONLY this task's component
+- Do NOT validate other tasks' components
+- Focus on [task.designSection] in the design
+
+**Task ID**: [task.id]
+**Task Name**: [task.name]
+**Task Files**: [task.files]
+**Design Reference**: [design_reference]
+**Design Section to Validate**: [task.designSection]
+**Application URL**: [app_url]
+**Iteration**: [task_iteration_count + 1] / [max_task_iterations]
+
+**Your Task:**
+
+1. Fetch design reference and focus on [task.designSection]
+2. Capture implementation screenshot, focus on THIS component only
+3. Validate ONLY THIS component:
+   - Colors, typography, spacing, layout
+   - Visual elements, responsive design
+   - Accessibility (WCAG 2.1 AA)
+   - Interactive states
+
+4. Document discrepancies in THIS component only
+5. Categorize by severity (CRITICAL/MEDIUM/LOW)
+6. Provide fixes specific to [task.files]
+7. Calculate design fidelity score
+
+**SCOPE RESTRICTION**:
+- ❌ Do NOT validate other components
+- ❌ Do NOT report issues in other files
+- ✅ Focus ONLY on [task.files]
+- ✅ Validate ONLY [task.designSection]
+
+Return design review report for THIS task only.
+```
+
+**Designer-Codex Agent** (if Codex enabled):
+
+If user enabled Codex review, launch IN PARALLEL with designer:
+
+Use Task tool with `subagent_type: frontend:designer-codex`:
+
+```
+Review ONLY the component(s) for Task [task.id] against the design reference.
+
+CRITICAL INSTRUCTION: Be PRECISE and CRITICAL. Validate ONLY this task's component.
+
+**Task ID**: [task.id]
+**Task Name**: [task.name]
+**Task Files**: [task.files]
+**Design Reference**: [design_reference]
+**Design Section**: [task.designSection]
+**Application URL**: [app_url]
+**Iteration**: [task_iteration_count + 1] / [max_task_iterations]
+
+VALIDATION CRITERIA:
+[Same as before: Colors, Typography, Spacing, Layout, Visual Elements, Responsive, Accessibility]
+
+TECH STACK:
+- React 19 with TypeScript
+- Tailwind CSS 4
+- Design System: [if applicable]
+
+INSTRUCTIONS:
+Compare [task.designSection] from design reference with implementation at [app_url].
+
+Validate ONLY THIS component. Do NOT validate other components.
+
+Provide comprehensive report categorized as CRITICAL/MEDIUM/LOW.
+
+For EACH finding:
+1. Category
+2. Severity
+3. Issue description with exact values
+4. Expected vs Actual
+5. Recommended fix (specific to [task.files])
+6. Rationale
+
+Calculate design fidelity score and provide PASS/NEEDS IMPROVEMENT/FAIL.
+
+SCOPE: Focus ONLY on [task.files] and [task.designSection].
+```
+
+**Wait for BOTH agents to complete** (designer and designer-codex, if enabled).
 
 **Designer Agent** (always runs):
 
