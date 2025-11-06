@@ -62,7 +62,18 @@ Add specific test implementation tasks as needed based on the features being tes
    - **Update TodoWrite**: Mark test strategy as completed, mark test implementation tasks as in_progress one at a time
    - **Update TodoWrite**: Mark each test implementation task as completed when tests are written
 
-3. **Test Quality Standards**
+3. **Test Quality Standards & Philosophy**
+
+   **Testing Philosophy: Simple, Essential, Fast**
+   - Write ONLY tests that provide value - avoid "checkbox testing"
+   - Focus on critical paths and business logic, not trivial code
+   - Keep tests simple and readable - if a test is complex, the code might be too complex
+   - Tests should run fast (aim for < 100ms per test, < 5 seconds total)
+   - **DON'T over-test**: No need to test framework code, libraries, or obvious getters/setters
+   - **DON'T over-complicate**: If you need complex mocking, consider refactoring the code
+   - **DO test**: Business logic, edge cases, error handling, API integrations, data transformations
+
+   **Test Quality Standards:**
    - Each test should verify ONE specific behavior
    - Avoid over-mocking - only mock what's necessary
    - Use meaningful test data that reflects real-world scenarios
@@ -71,6 +82,7 @@ Add specific test implementation tasks as needed based on the features being tes
    - Write tests that fail for the right reasons
    - Use appropriate matchers (toBe, toEqual, toMatchObject, etc.)
    - Leverage Vitest's type-safe assertions
+   - Tests should be self-explanatory with clear describe/it names
 
 4. **Unit vs Integration Test Guidelines**
    
@@ -89,18 +101,21 @@ Add specific test implementation tasks as needed based on the features being tes
    - Can be slower but should still be reasonable
    - Filename pattern: `*.integration.spec.ts` or `*.integration.test.ts`
 
-5. **Failure Analysis Protocol**
+5. **Failure Analysis Protocol & Feedback Loop**
 
-   When tests fail, follow this systematic approach:
+   When tests fail, follow this systematic approach to determine root cause and provide appropriate feedback:
 
    **IMPORTANT**: Add failure analysis tasks to TodoWrite when failures occur:
    ```
    - content: "Analyze test failure: [test name]"
      status: "in_progress"
      activeForm: "Analyzing test failure"
-   - content: "Fix test issue or document implementation bug"
+   - content: "Determine failure category (test issue vs implementation issue)"
      status: "pending"
-     activeForm: "Fixing test issue or documenting implementation bug"
+     activeForm: "Determining failure category"
+   - content: "Fix test issue OR prepare implementation feedback"
+     status: "pending"
+     activeForm: "Fixing test issue or preparing implementation feedback"
    ```
 
    **Step 1: Verify Test Correctness**
@@ -109,6 +124,7 @@ Add specific test implementation tasks as needed based on the features being tes
    - Ensure mocks are configured correctly
    - Check for async/await issues or race conditions
    - Validate test data and setup
+   - **IF TEST IS FLAWED**: Fix the test and re-run (don't blame implementation)
    - **Update TodoWrite**: Add findings to current analysis task
 
    **Step 2: Check External Dependencies**
@@ -117,13 +133,110 @@ Add specific test implementation tasks as needed based on the features being tes
    - Ensure test fixtures and seed data are present
    - Validate network connectivity if needed
    - Check file system permissions
-   
+   - **IF MISSING DEPENDENCIES**: Document requirements clearly
+
    **Step 3: Analyze Implementation**
    - Only if Steps 1 and 2 pass, examine the code under test
    - Identify specific implementation issues causing failures
-   - Categorize bugs by severity
-   - Document expected vs actual behavior
-   - **Update TodoWrite**: Mark analysis as completed, mark fix/documentation task as in_progress
+   - Categorize bugs by severity (Critical / Major / Minor)
+   - Document expected vs actual behavior with code examples
+   - **Update TodoWrite**: Mark analysis as completed, mark feedback preparation as in_progress
+
+   **Step 4: Categorize Failure and Provide Structured Feedback**
+
+   After analysis, explicitly categorize the failure and provide structured output:
+
+   **CATEGORY A: TEST_ISSUE** (you fix it, no developer feedback needed)
+   - Test logic was wrong
+   - Mocking was incorrect
+   - Async handling was buggy
+   - **ACTION**: Fix the test, re-run, continue until tests pass or Category B/C found
+
+   **CATEGORY B: MISSING_CONTEXT** (need clarification)
+   - Missing environment variables or configuration
+   - Unclear requirements or expected behavior
+   - Missing external dependencies
+   - **ACTION**: Output structured report requesting clarification
+
+   ```markdown
+   ## MISSING_CONTEXT
+
+   **Missing Information:**
+   - [List what's needed]
+
+   **Impact:**
+   - [How this blocks testing]
+
+   **Questions:**
+   1. [Specific question 1]
+   2. [Specific question 2]
+   ```
+
+   **CATEGORY C: IMPLEMENTATION_ISSUE** (developer must fix)
+   - Code logic is incorrect
+   - API integration has bugs
+   - Type errors or runtime errors in implementation
+   - Business logic doesn't match requirements
+   - **ACTION**: Output structured implementation feedback report
+
+   ```markdown
+   ## IMPLEMENTATION_ISSUE
+
+   **Status**: Tests written and executed. Implementation has issues that need fixing.
+
+   **Test Results:**
+   - Total Tests: X
+   - Passing: Y
+   - Failing: Z
+
+   **Critical Issues Requiring Fixes:**
+
+   ### Issue 1: [Brief title]
+   - **Test:** `[test name and file]`
+   - **Failure:** [What the test expected vs what happened]
+   - **Root Cause:** [Specific code issue]
+   - **Location:** `[file:line]`
+   - **Recommended Fix:**
+   ```typescript
+   // Current (broken):
+   [show problematic code]
+
+   // Suggested fix:
+   [show corrected code]
+   ```
+
+   ### Issue 2: [Brief title]
+   [Same structure]
+
+   **Action Required:** Developer must fix the implementation issues above and re-run tests.
+   ```
+
+   **CATEGORY D: ALL_TESTS_PASS** (success - ready for code review)
+
+   ```markdown
+   ## ALL_TESTS_PASS
+
+   **Status**: All tests passing. Implementation is ready for code review.
+
+   **Test Summary:**
+   - Total Tests: X (all passing)
+   - Unit Tests: Y
+   - Integration Tests: Z
+   - Coverage: X%
+
+   **What Was Tested:**
+   - [List key behaviors tested]
+   - [Edge cases covered]
+   - [Error scenarios validated]
+
+   **Quality Notes:**
+   - Tests are simple, focused, and maintainable
+   - Fast execution time (X seconds)
+   - No flaky tests detected
+   - Type-safe and well-documented
+
+   **Next Step:** Proceed to code review phase.
+   ```
 
 6. **Comprehensive Reporting**
 

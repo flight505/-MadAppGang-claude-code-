@@ -100,9 +100,6 @@ TodoWrite with the following items:
 - content: "PHASE 2: Launch developer for implementation"
   status: "pending"
   activeForm: "PHASE 2: Launching developer for implementation"
-- content: "PHASE 2: Get manual testing instructions from implementation agent"
-  status: "pending"
-  activeForm: "PHASE 2: Getting manual testing instructions from implementation agent"
 - content: "PHASE 2.5: Detect Figma design links in feature request and plan"
   status: "pending"
   activeForm: "PHASE 2.5: Detecting Figma design links"
@@ -151,6 +148,21 @@ TodoWrite with the following items:
 - Track the number of review cycles and test cycles by adding iteration tasks
 
 **IMPORTANT**: This global todo list provides high-level workflow tracking. Each agent will also maintain its own internal todo list for detailed task tracking.
+
+**NOTE FOR API_FOCUSED WORKFLOWS**: After STEP 0.5 (workflow detection), if workflow is API_FOCUSED, add these additional todos:
+```
+- content: "PHASE 2.5: Launch test-architect to write and run tests"
+  status: "pending"
+  activeForm: "PHASE 2.5: Launching test-architect for test-driven development"
+- content: "PHASE 2.5: Test-driven feedback loop (may iterate with developer)"
+  status: "pending"
+  activeForm: "PHASE 2.5: Running test-driven feedback loop"
+- content: "PHASE 2.5: Quality gate - ensure all tests pass"
+  status: "pending"
+  activeForm: "PHASE 2.5: Ensuring all tests pass"
+```
+
+And mark PHASE 4 testing todos as "Skipped - API workflow completed testing in PHASE 2.5"
 
 ---
 
@@ -262,17 +274,26 @@ Based on `workflow_type`, configure the workflow:
 **PHASE 2**: Will use `frontend:developer` (TypeScript/API specialist, not UI developer)
   - Focus: API integration, data fetching, type safety, error handling
   - No UI development specialists involved
-**PHASE 2.5**: **COMPLETELY SKIPPED** - No design validation needed for API work
-  - All PHASE 2.5 todos will be marked as "completed" with note: "Skipped - API workflow"
+  - Developer implements feature based on architecture plan
+**PHASE 2.5**: **TEST-DRIVEN FEEDBACK LOOP** (replaces manual testing and UI validation)
+  - Launch `frontend:test-architect` to write and run Vitest tests
+  - Test-architect writes focused unit and integration tests
+  - Tests are executed automatically
+  - IF tests fail:
+    * Test-architect analyzes failures (test issue vs implementation issue)
+    * If TEST_ISSUE: Test-architect fixes tests and re-runs
+    * If IMPLEMENTATION_ISSUE: Provide structured feedback to developer
+    * Re-launch developer with test failure feedback
+    * Loop continues until ALL_TESTS_PASS
+  - IF tests pass: Proceed to code review (PHASE 3)
+  - **Design validation SKIPPED** - Not needed for API work
 **PHASE 3**: Will run only TWO reviewers in parallel:
   - frontend:reviewer (code review focused on API logic, error handling, types)
   - frontend:codex-reviewer (automated analysis of API patterns and best practices)
-  - **frontend:tester SKIPPED** - No UI testing needed for API-only work
-**PHASE 4**: Testing focused on:
-  - Unit tests for API service functions
-  - Integration tests for API calls
-  - Mock API responses and error scenarios
-  - Type safety and data validation
+  - **frontend:tester SKIPPED** - Testing already done in PHASE 2.5
+**PHASE 4**: **SKIPPED** - All testing completed in PHASE 2.5
+  - Unit and integration tests already written and passing
+  - No additional test work needed
 ```
 
 ##### For **MIXED** Workflow:
@@ -370,17 +391,32 @@ These will be referenced in subsequent phases to route execution correctly.
    - **Update TodoWrite**: Mark "PHASE 2: Get manual testing instructions" as completed
    - Save testing instructions for use by tester agent
 
-### PHASE 2.5: Design Fidelity Validation (Conditional - Only for UI Workflows with Figma Links)
+### PHASE 2.5: Workflow-Specific Validation (Design Validation OR Test-Driven Loop)
 
 **CRITICAL WORKFLOW ROUTING**: This phase behavior depends on the `workflow_type` detected in STEP 0.5.
 
-#### Check Workflow Type First
+- **For UI_FOCUSED workflows**: Run Design Fidelity Validation (see below)
+- **For API_FOCUSED workflows**: Run Test-Driven Feedback Loop (see below)
+- **For MIXED workflows**: Run both (design for UI components, tests for API logic)
+
+---
+
+#### PHASE 2.5-A: Design Fidelity Validation (UI_FOCUSED & MIXED Workflows)
+
+**Applies to**: UI_FOCUSED workflows, or UI components in MIXED workflows.
+**Prerequisite**: Figma design links present in feature request or architecture plan.
+
+**1. Check Workflow Type First**
 
 **IF `workflow_type` is "API_FOCUSED":**
-- **SKIP ENTIRE PHASE 2.5** - No design validation needed for API-only work
-- **Update TodoWrite**: Mark ALL PHASE 2.5 todos as "completed" with note: "Skipped - API_FOCUSED workflow (no UI changes)"
-- Log: "✅ PHASE 2.5 skipped - API-FOCUSED workflow detected. No design validation needed."
-- **Proceed directly to PHASE 3** (but remember to skip UI tester there too)
+  - Skip to PHASE 2.5-B: Test-Driven Feedback Loop (below)
+  - Do NOT run design validation
+
+**IF `workflow_type` is "UI_FOCUSED" or "MIXED":**
+  - Continue with design validation below
+  - Check for Figma links first
+
+**2. Detect Figma Links** (UI workflows only)
 
 **IF `workflow_type` is "UI_FOCUSED" or "MIXED":**
 - Continue with design validation below
@@ -942,6 +978,165 @@ Options:
 
 **REMINDER**: You are orchestrating. You do NOT implement fixes yourself. Always use Task to delegate to designer and ui-developer agents.
 
+---
+
+#### PHASE 2.5-B: Test-Driven Feedback Loop (API_FOCUSED & MIXED Workflows)
+
+**Applies to**: API_FOCUSED workflows, or API logic in MIXED workflows.
+**Purpose**: Write and run automated tests BEFORE code review to catch implementation issues early.
+
+**Philosophy**: No manual testing. Write focused Vitest tests, run them, analyze failures, and loop with developer until all tests pass.
+
+**1. Launch Test-Architect**
+
+- **Update TodoWrite**: Mark "PHASE 2.5: Launch test-architect" as in_progress
+- Use Task tool with `subagent_type: frontend:test-architect`
+- Provide clear context:
+  ```
+  Task: Write and run comprehensive Vitest tests for the API implementation
+
+  Context:
+  - Feature: [brief description]
+  - Implementation location: [files changed]
+  - Architecture plan: [path to AI-DOCS plan]
+  - Focus: API integration, data fetching, business logic, error handling
+
+  Requirements:
+  - Write focused unit tests for service functions
+  - Write integration tests for API calls
+  - Keep tests simple, fast, and maintainable
+  - Mock external dependencies appropriately
+  - Test edge cases and error scenarios
+
+  After writing tests, RUN them with Vitest and analyze results.
+  Provide structured output based on test results (see test-architect agent for output format).
+  ```
+
+**2. Analyze Test-Architect Output**
+
+Test-architect will return one of four categories:
+
+**CATEGORY A: TEST_ISSUE** (agent fixed it internally)
+- Test-architect fixed test bugs and re-ran
+- Tests now pass
+- Proceed to step 3
+
+**CATEGORY B: MISSING_CONTEXT**
+- Tests cannot be written without clarification
+- **Action**: Review missing information report
+- Use AskUserQuestion to get clarification
+- Re-launch test-architect with additional context
+- Loop back to step 1
+
+**CATEGORY C: IMPLEMENTATION_ISSUE** (developer must fix)
+- Tests are correct but implementation has bugs
+- Test-architect provides structured feedback with:
+  * Specific failing tests
+  * Root causes
+  * Recommended fixes with code examples
+- **Action**: Proceed to step 3 (feedback loop with developer)
+
+**CATEGORY D: ALL_TESTS_PASS** (success!)
+- All tests passing
+- Implementation verified
+- **Action**: Skip step 3, proceed to PHASE 3 (code review)
+
+**3. Developer Feedback Loop** (Only for CATEGORY C: IMPLEMENTATION_ISSUE)
+
+**IF tests revealed implementation issues:**
+
+a. **Update TodoWrite**: Add iteration task:
+   ```
+   - content: "PHASE 2.5 - Iteration X: Fix implementation based on test failures"
+     status: "in_progress"
+     activeForm: "PHASE 2.5 - Iteration X: Fixing implementation based on test failures"
+   ```
+
+b. **Present test failure feedback to user** (optional, for transparency):
+   ```markdown
+   ## Test Results: Implementation Issues Found
+
+   The test-architect wrote and executed tests. Some tests are failing due to implementation issues.
+
+   **Test Summary:**
+   - Total Tests: X
+   - Passing: Y
+   - Failing: Z
+
+   **Issues Found:**
+   [Brief summary of key issues]
+
+   **Action**: Re-launching developer to fix implementation based on test feedback.
+   ```
+
+c. **Re-launch Developer** with test feedback:
+   - Use Task tool with `subagent_type: frontend:developer`
+   - Provide:
+     * Original feature request
+     * Architecture plan
+     * Test failure analysis from test-architect
+     * Specific issues that need fixing
+     * Instruction to fix implementation and verify tests pass
+
+d. **Re-run Tests** after developer fixes:
+   - Re-launch test-architect to run tests again
+   - Provide: "Re-run existing tests to verify fixes"
+   - **Update TodoWrite**: Mark iteration as completed
+
+e. **Loop Until Tests Pass**:
+   - IF still failing: Repeat step 3 (add new iteration)
+   - IF passing: Proceed to step 4
+   - **Safety limit**: Max 3 iterations, then escalate to user
+
+**4. Quality Gate: Ensure All Tests Pass**
+
+- **Update TodoWrite**: Mark "PHASE 2.5: Quality gate - ensure all tests pass" as in_progress
+- Verify test-architect output shows `ALL_TESTS_PASS`
+- Log test summary:
+  ```markdown
+  ✅ **PHASE 2.5 Complete: All Tests Passing**
+
+  **Test Summary:**
+  - Total Tests: X (all passing)
+  - Unit Tests: Y
+  - Integration Tests: Z
+  - Test Execution Time: X seconds
+  - Coverage: X%
+
+  **Iterations Required**: X (if any)
+
+  **Next Step**: Proceeding to code review (PHASE 3)
+  ```
+- **Update TodoWrite**: Mark "PHASE 2.5: Quality gate" as completed
+- **Proceed to PHASE 3**
+
+**Test-Driven Feedback Loop Summary** (to be included in final report):
+```markdown
+## PHASE 2.5-B: Test-Driven Feedback Loop Results
+
+**Status**: ✅ All tests passing
+**Total Tests Written**: X
+**Test Breakdown**:
+- Unit Tests: Y
+- Integration Tests: Z
+**Test Execution Time**: X seconds
+**Test Coverage**: X%
+
+**Feedback Loop Iterations**: X
+[If iterations > 0:]
+- Iteration 1: [Brief description of issues found and fixed]
+- Iteration 2: [Brief description]
+
+**Key Test Coverage**:
+- [List major behaviors/scenarios tested]
+- [Edge cases covered]
+- [Error handling validated]
+
+**Outcome**: Implementation verified through automated testing. Ready for code review.
+```
+
+---
+
 ### PHASE 3: Review Loop (Adaptive Based on Workflow Type)
 
 **CRITICAL WORKFLOW ROUTING**: This phase adapts based on the `workflow_type` detected in STEP 0.5.
@@ -1173,18 +1368,23 @@ Options:
 
 ### PHASE 4: Testing Loop (test-architect)
 
-**Testing Focus Adapts to Workflow Type:**
+**CRITICAL WORKFLOW ROUTING**: Testing approach depends on `workflow_type`.
 
 **For API_FOCUSED workflows:**
-- Focus on: Unit tests for API services, integration tests for API calls, mock API responses, error scenarios, type safety
-- Skip: UI component visual tests, interaction tests
+- **SKIP THIS PHASE ENTIRELY** - All testing completed in PHASE 2.5-B (Test-Driven Feedback Loop)
+- **Update TodoWrite**: Mark "PHASE 4: Launch test-architect" as completed with note: "Skipped - API_FOCUSED workflow completed testing in PHASE 2.5"
+- **Update TodoWrite**: Mark "PHASE 4: Quality gate - ensure all tests pass" as completed with note: "Already verified in PHASE 2.5"
+- Log: "✅ PHASE 4 skipped - API_FOCUSED workflow. All tests already written, executed, and passing from PHASE 2.5."
+- **Proceed directly to PHASE 5**
 
 **For UI_FOCUSED workflows:**
 - Focus on: Component tests, user interaction tests, accessibility tests, visual regression tests
-- May include: Minimal API mocking for data-dependent components
+- Continue with test-architect as described below
 
 **For MIXED workflows:**
-- Focus on: Both API tests AND UI tests, plus integration tests connecting UI to API
+- API tests already done in PHASE 2.5-B
+- Focus remaining testing on: UI component tests, visual tests, integration tests between UI and API
+- May include: Minimal API mocking for data-dependent UI components
 
 ---
 

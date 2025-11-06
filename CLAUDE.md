@@ -404,10 +404,14 @@ Include marketplace in project settings (requires folder trust):
   - Multi-layer error handling, Suspense integration, optimistic updates
   - Advanced patterns: prefetching, infinite queries, pagination
   - Performance optimization, MSW testing, anti-patterns
-- **Intelligent Workflow Detection** (NEW in v2.8.0) - Automatically detects API/UI/Mixed tasks and adapts execution
-  - API-focused workflows skip design validation and UI testing for faster implementation
-  - UI-focused workflows get full design validation and 3-reviewer quality gates
-  - Mixed workflows combine both with appropriate focus areas
+- **Intelligent Workflow Detection with Test-Driven Development** (Enhanced in v2.9.0)
+  - API-focused workflows: **Test-driven feedback loop** in PHASE 2.5 (NEW!)
+    - Automated Vitest test writing and execution
+    - Test-architect analyzes failures (test vs implementation issues)
+    - Loops with developer until all tests pass
+    - Eliminates manual testing, ensures quality before code review
+  - UI-focused workflows: Design validation and 3-reviewer quality gates
+  - Mixed workflows: Combine test-driven API development with UI validation
 - **Designer + UI Developer ecosystem** (3 agents for pixel-perfect implementation)
 - 7 slash commands (including /implement with adaptive workflow detection)
 - 5 workflow skills (including semantic-code-search for claude-context MCP)
@@ -424,5 +428,5 @@ Include marketplace in project settings (requires folder trust):
 ---
 
 **Maintained by:** Jack Rudenko @ MadAppGang
-**Last Updated:** November 6, 2024
+**Last Updated:** November 7, 2024
 **Version:** 2.9.0
