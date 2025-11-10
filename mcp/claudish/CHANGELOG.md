@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.8] - 2024-11-10
+
+### Fixed
+- ✅ **CRITICAL**: Fixed model identity role-playing issue
+  - Non-Claude models (Grok, GPT, etc.) now correctly identify themselves
+  - Added comprehensive system prompt filtering to remove Claude identity claims
+  - Filters Claude-specific prompts: "You are Claude", "powered by Sonnet/Haiku/Opus", etc.
+  - Added explicit identity override instruction to prevent role-playing
+  - Removes `<claude_background_info>` tags that contain misleading model information
+  - **Before**: Grok responded "I am Claude, created by Anthropic"
+  - **After**: Grok responds "I am Grok, an AI model built by xAI"
+
+### Technical Details
+- System prompt filtering in `src/api-translator.ts`:
+  - Replaces "You are Claude Code, Anthropic's official CLI" → "This is Claude Code, an AI-powered CLI tool"
+  - Replaces "You are powered by the model named X" → "You are powered by an AI model"
+  - Removes `<claude_background_info>` XML tags
+  - Adds explicit instruction: "You are NOT Claude. You are NOT created by Anthropic."
+- Build size: 19.43 KB
+
+### Changed
+- Enhanced API translation to preserve model identity while maintaining Claude Code functionality
+- Models now truthfully identify themselves while still having access to all Claude Code tools
+
 ## [1.0.7] - 2024-11-10
 
 ### Fixed

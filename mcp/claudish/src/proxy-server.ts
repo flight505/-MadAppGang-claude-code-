@@ -106,12 +106,12 @@ async function handleMessagesRequest(
     // Handle streaming
     if (anthropicReq.stream) {
       log("[Proxy] Starting streaming request to OpenRouter");
-      return handleStreamingRequest(openrouterReq, apiKey, anthropicReq.model);
+      return handleStreamingRequest(openrouterReq, apiKey, model);
     }
 
     // Handle non-streaming
     log("[Proxy] Starting non-streaming request to OpenRouter");
-    return handleNonStreamingRequest(openrouterReq, apiKey, anthropicReq.model);
+    return handleNonStreamingRequest(openrouterReq, apiKey, model);
   } catch (error) {
     log(`[Proxy] Request handling error: ${error}`);
     return new Response(
