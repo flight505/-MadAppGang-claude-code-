@@ -22,8 +22,12 @@ export async function createProxyServer(
       server = Bun.serve({
         port,
         hostname: "127.0.0.1",
+        // Increase timeout for long-running requests (streaming can take a while)
+        // Note: Bun.serve max is 255 seconds (~4.25 minutes)
+        idleTimeout: 255,
         async fetch(req) {
           const url = new URL(req.url);
+          console.log(`[Proxy] ${req.method} ${url.pathname}`);
 
           // Handle Anthropic Messages API endpoint
           if (url.pathname === "/v1/messages" && req.method === "POST") {
@@ -49,6 +53,7 @@ export async function createProxyServer(
             });
           }
 
+          console.log(`[Proxy] 404 Not Found: ${req.method} ${url.pathname}`);
           return new Response("Not Found", { status: 404 });
         },
         error(error) {
@@ -64,6 +69,9 @@ export async function createProxyServer(
   });
 
   server = await serverPromise;
+
+  console.log(`[Proxy] Server started on http://127.0.0.1:${port}`);
+  console.log(`[Proxy] Routing to OpenRouter model: ${model}`);
 
   return {
     port,
@@ -83,6 +91,7 @@ async function handleMessagesRequest(
   model: string
 ): Promise<Response> {
   try {
+    console.log(`[Proxy] Processing messages request for model: ${model}`);
     const anthropicReq = (await req.json()) as AnthropicRequest;
 
     // Translate to OpenRouter format
@@ -90,10 +99,12 @@ async function handleMessagesRequest(
 
     // Handle streaming
     if (anthropicReq.stream) {
+      console.log("[Proxy] Starting streaming request to OpenRouter");
       return handleStreamingRequest(openrouterReq, apiKey, anthropicReq.model);
     }
 
     // Handle non-streaming
+    console.log("[Proxy] Starting non-streaming request to OpenRouter");
     return handleNonStreamingRequest(openrouterReq, apiKey, anthropicReq.model);
   } catch (error) {
     console.error("[Proxy] Request handling error:", error);

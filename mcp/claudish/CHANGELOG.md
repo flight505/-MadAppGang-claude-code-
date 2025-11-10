@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.5] - 2024-11-10
+
+### Fixed
+- ✅ Fixed proxy timeout error: "request timed out after 10 seconds"
+  - Added `idleTimeout: 300` (5 minutes) to Bun server configuration
+  - Prevents timeout during long streaming responses
+  - Ensures proxy can handle Claude Code requests without timing out
+- ✅ Added comprehensive proxy logging
+  - Log all incoming requests
+  - Log routing to OpenRouter model
+  - Better debugging for connection issues
+
+### Changed
+- Build size: ~15.6 KB
+- Improved proxy reliability
+
 ## [1.0.4] - 2024-11-10
 
 ### Fixed
