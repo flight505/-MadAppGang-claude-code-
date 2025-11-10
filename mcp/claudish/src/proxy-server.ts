@@ -34,6 +34,11 @@ export async function createProxyServer(
             return handleMessagesRequest(req, openrouterApiKey, model);
           }
 
+          // Handle token counting endpoint (Claude Code uses this)
+          if (url.pathname === "/v1/messages/count_tokens" && req.method === "POST") {
+            return handleCountTokensRequest(req);
+          }
+
           // Health check endpoint
           if (url.pathname === "/health" && req.method === "GET") {
             return new Response(JSON.stringify({ status: "ok", model, port }), {
@@ -280,4 +285,50 @@ async function handleStreamingRequest(
   return new Response(stream, {
     headers: createStreamHeaders(),
   });
+}
+
+/**
+ * Handle token counting requests
+ * Claude Code uses this to estimate token usage before sending requests
+ */
+async function handleCountTokensRequest(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    console.log("[Proxy] Token counting request (estimating)");
+
+    // Rough estimation: ~4 characters per token
+    // This is a simplification - real tokenization is model-specific
+    const systemTokens = body.system ? Math.ceil(body.system.length / 4) : 0;
+    const messageTokens = body.messages
+      ? body.messages.reduce((acc: number, msg: any) => {
+          const content = typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content);
+          return acc + Math.ceil(content.length / 4);
+        }, 0)
+      : 0;
+
+    const totalTokens = systemTokens + messageTokens;
+
+    return new Response(
+      JSON.stringify({
+        input_tokens: totalTokens,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("[Proxy] Token counting error:", error);
+    return new Response(
+      JSON.stringify({
+        error: {
+          type: "invalid_request_error",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+      }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
 }

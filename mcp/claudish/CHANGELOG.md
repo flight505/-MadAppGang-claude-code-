@@ -4,17 +4,22 @@
 
 ### Fixed
 - ✅ Fixed proxy timeout error: "request timed out after 10 seconds"
-  - Added `idleTimeout: 300` (5 minutes) to Bun server configuration
+  - Added `idleTimeout: 255` (4.25 minutes, Bun maximum) to server configuration
   - Prevents timeout during long streaming responses
   - Ensures proxy can handle Claude Code requests without timing out
+- ✅ Implemented `/v1/messages/count_tokens` endpoint
+  - Claude Code uses this to estimate token usage
+  - No more 404 errors for token counting
+  - Uses rough estimation (~4 chars per token)
 - ✅ Added comprehensive proxy logging
-  - Log all incoming requests
+  - Log all incoming requests (method + pathname)
   - Log routing to OpenRouter model
+  - Log streaming vs non-streaming request types
   - Better debugging for connection issues
 
 ### Changed
-- Build size: ~15.6 KB
-- Improved proxy reliability
+- Build size: 16.73 KB
+- Improved proxy reliability and completeness
 
 ## [1.0.4] - 2024-11-10
 
