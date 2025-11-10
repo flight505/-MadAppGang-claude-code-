@@ -4,6 +4,7 @@ import { checkClaudeInstalled, runClaudeWithProxy } from "./claude-runner.js";
 import { parseArgs } from "./cli.js";
 import { DEFAULT_PORT_RANGE } from "./config.js";
 import { selectModelInteractively } from "./interactive-cli.js";
+import { initLogger, getLogFilePath } from "./logger.js";
 import { findAvailablePort } from "./port-manager.js";
 import { createProxyServer } from "./proxy-server.js";
 
@@ -11,6 +12,9 @@ async function main() {
   try {
     // Parse CLI arguments
     const config = parseArgs(process.argv.slice(2));
+
+    // Initialize logger if debug mode
+    initLogger(config.debug);
 
     // Check if Claude Code is installed
     if (!(await checkClaudeInstalled())) {
@@ -43,7 +47,18 @@ async function main() {
       await proxy.shutdown();
     }
 
-    console.log("[claudish] Done\n");
+    console.log("[claudish] Done");
+
+    // Show log file location if debug mode
+    if (config.debug) {
+      const logFile = getLogFilePath();
+      if (logFile) {
+        console.log(`[claudish] Debug log saved to: ${logFile}\n`);
+      }
+    } else {
+      console.log("");
+    }
+
     process.exit(exitCode);
   } catch (error) {
     console.error("[claudish] Fatal error:", error);

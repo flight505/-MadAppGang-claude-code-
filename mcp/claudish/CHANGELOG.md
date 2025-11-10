@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.0.6] - 2024-11-10
+
+### Added
+- ✅ **Debug logging to file** with `--debug` or `-d` flag
+  - Creates timestamped log files in `logs/` directory
+  - One log file per session: `claudish_YYYY-MM-DD_HH-MM-SS.log`
+  - Logs all proxy activity: requests, responses, translations
+  - Keeps console clean - only essential messages shown
+  - Full request/response JSON logged for analysis
+  - Perfect for debugging model routing issues
+
+### Changed
+- Build size: 17.68 KB
+- Improved debugging capabilities
+- Added `logs/` to `.gitignore`
+
+### Usage
+```bash
+# Enable debug logging
+claudish --debug --model x-ai/grok-code-fast-1 "your prompt"
+
+# Or in interactive mode
+claudish -i -d --model x-ai/grok-code-fast-1
+
+# View log after completion
+cat logs/claudish_*.log
+```
+
 ## [1.0.5] - 2024-11-10
 
 ### Fixed

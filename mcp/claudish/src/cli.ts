@@ -10,6 +10,7 @@ export function parseArgs(args: string[]): ClaudishConfig {
     autoApprove: true, // Skip permissions by default (--dangerously-skip-permissions)
     dangerous: false,
     interactive: false, // Single-shot mode by default
+    debug: false, // No debug logging by default
     claudeArgs: [],
   };
 
@@ -58,6 +59,8 @@ export function parseArgs(args: string[]): ClaudishConfig {
       config.dangerous = true;
     } else if (arg === "--interactive" || arg === "-i") {
       config.interactive = true;
+    } else if (arg === "--debug" || arg === "-d") {
+      config.debug = true;
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
@@ -123,6 +126,7 @@ OPTIONS:
   -i, --interactive        Run Claude Code in interactive mode (persistent session)
   -m, --model <model>      OpenRouter model to use (shows interactive selector if not provided)
   -p, --port <port>        Proxy server port (default: random)
+  -d, --debug              Enable debug logging to file (logs/claudish_*.log)
   --no-auto-approve        Disable auto permission skip (prompts enabled)
   --dangerous              Pass --dangerouslyDisableSandbox to Claude Code
   --list-models            List available OpenRouter models

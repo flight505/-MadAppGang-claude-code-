@@ -17,6 +17,8 @@ export interface ClaudishConfig {
   port?: number;
   autoApprove: boolean;
   dangerous: boolean;
+  interactive: boolean;
+  debug: boolean;
   openrouterApiKey: string;
   claudeArgs: string[];
 }

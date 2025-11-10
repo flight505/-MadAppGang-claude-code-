@@ -5,6 +5,7 @@ import {
   translateStreamChunk,
 } from "./api-translator.js";
 import { OPENROUTER_API_URL, OPENROUTER_HEADERS } from "./config.js";
+import { log } from "./logger.js";
 import type { AnthropicRequest, OpenRouterResponse, ProxyServer } from "./types.js";
 
 /**
@@ -27,7 +28,7 @@ export async function createProxyServer(
         idleTimeout: 255,
         async fetch(req) {
           const url = new URL(req.url);
-          console.log(`[Proxy] ${req.method} ${url.pathname}`);
+          log(`[Proxy] ${req.method} ${url.pathname}`);
 
           // Handle Anthropic Messages API endpoint
           if (url.pathname === "/v1/messages" && req.method === "POST") {
@@ -58,11 +59,11 @@ export async function createProxyServer(
             });
           }
 
-          console.log(`[Proxy] 404 Not Found: ${req.method} ${url.pathname}`);
+          log(`[Proxy] 404 Not Found: ${req.method} ${url.pathname}`);
           return new Response("Not Found", { status: 404 });
         },
         error(error) {
-          console.error("[Proxy Error]", error);
+          log(`[Proxy Error] ${error}`);
           return new Response("Internal Server Error", { status: 500 });
         },
       });
@@ -75,8 +76,8 @@ export async function createProxyServer(
 
   server = await serverPromise;
 
-  console.log(`[Proxy] Server started on http://127.0.0.1:${port}`);
-  console.log(`[Proxy] Routing to OpenRouter model: ${model}`);
+  log(`[Proxy] Server started on http://127.0.0.1:${port}`, true);
+  log(`[Proxy] Routing to OpenRouter model: ${model}`, true);
 
   return {
     port,
@@ -96,7 +97,7 @@ async function handleMessagesRequest(
   model: string
 ): Promise<Response> {
   try {
-    console.log(`[Proxy] Processing messages request for model: ${model}`);
+    log(`[Proxy] Processing messages request for model: ${model}`);
     const anthropicReq = (await req.json()) as AnthropicRequest;
 
     // Translate to OpenRouter format
@@ -104,15 +105,15 @@ async function handleMessagesRequest(
 
     // Handle streaming
     if (anthropicReq.stream) {
-      console.log("[Proxy] Starting streaming request to OpenRouter");
+      log("[Proxy] Starting streaming request to OpenRouter");
       return handleStreamingRequest(openrouterReq, apiKey, anthropicReq.model);
     }
 
     // Handle non-streaming
-    console.log("[Proxy] Starting non-streaming request to OpenRouter");
+    log("[Proxy] Starting non-streaming request to OpenRouter");
     return handleNonStreamingRequest(openrouterReq, apiKey, anthropicReq.model);
   } catch (error) {
-    console.error("[Proxy] Request handling error:", error);
+    log(`[Proxy] Request handling error: ${error}`);
     return new Response(
       JSON.stringify({
         error: {
@@ -136,6 +137,9 @@ async function handleNonStreamingRequest(
   apiKey: string,
   originalModel: string
 ): Promise<Response> {
+  log("[Proxy] Sending to OpenRouter:");
+  log(JSON.stringify(openrouterReq, null, 2));
+
   const response = await fetch(OPENROUTER_API_URL, {
     method: "POST",
     headers: {
@@ -148,7 +152,7 @@ async function handleNonStreamingRequest(
 
   if (!response.ok) {
     const error = await response.text();
-    console.error("[Proxy] OpenRouter API error:", error);
+    log(`[Proxy] OpenRouter API error: ${error}`);
     return new Response(error, {
       status: response.status,
       headers: { "Content-Type": "application/json" },
@@ -156,7 +160,12 @@ async function handleNonStreamingRequest(
   }
 
   const openrouterRes = (await response.json()) as OpenRouterResponse;
+  log("[Proxy] Received from OpenRouter:");
+  log(JSON.stringify(openrouterRes, null, 2));
+
   const anthropicRes = translateOpenRouterToAnthropic(openrouterRes, originalModel);
+  log("[Proxy] Translated to Anthropic format:");
+  log(JSON.stringify(anthropicRes, null, 2));
 
   return new Response(JSON.stringify(anthropicRes), {
     headers: { "Content-Type": "application/json" },
@@ -183,7 +192,7 @@ async function handleStreamingRequest(
 
   if (!response.ok) {
     const error = await response.text();
-    console.error("[Proxy] OpenRouter streaming error:", error);
+    log(`[Proxy] OpenRouter streaming error: ${error}`);
     return new Response(error, {
       status: response.status,
       headers: { "Content-Type": "application/json" },
@@ -275,7 +284,7 @@ async function handleStreamingRequest(
           );
         }
       } catch (error) {
-        console.error("[Proxy] Streaming error:", error);
+        log(`[Proxy] Streaming error: ${error}`);
       } finally {
         safeClose();
       }
@@ -294,7 +303,7 @@ async function handleStreamingRequest(
 async function handleCountTokensRequest(req: Request): Promise<Response> {
   try {
     const body = await req.json();
-    console.log("[Proxy] Token counting request (estimating)");
+    log("[Proxy] Token counting request (estimating)");
 
     // Rough estimation: ~4 characters per token
     // This is a simplification - real tokenization is model-specific
@@ -317,7 +326,7 @@ async function handleCountTokensRequest(req: Request): Promise<Response> {
       }
     );
   } catch (error) {
-    console.error("[Proxy] Token counting error:", error);
+    log(`[Proxy] Token counting error: ${error}`);
     return new Response(
       JSON.stringify({
         error: {
