@@ -384,15 +384,22 @@ export async function createProxyServer(
               },
             });
 
+            // Send content_block_start immediately (for index 0 text block)
+            // Claude Code expects this IMMEDIATELY after message_start
+            sendSSE("content_block_start", {
+              type: "content_block_start",
+              index: 0,
+              content_block: {
+                type: "text",
+                text: "",
+              },
+            });
+            textBlockStarted = true;
+
             // Send ping (required by Claude Code)
             sendSSE("ping", {
               type: "ping",
             });
-
-            // NOTE: We don't send content_block_start here anymore!
-            // We'll send it lazily when we receive the first actual content delta.
-            // This prevents Claude Code from seeing an empty text block when models
-            // (like Grok) send only reasoning deltas with no text content.
 
             try {
               const reader = openrouterResponse.body?.getReader();
@@ -485,21 +492,8 @@ export async function createProxyServer(
                     const choice = chunk.choices?.[0];
                     const delta = choice?.delta;
 
-                    // Send content deltas (lazy start text block on first content)
+                    // Send content deltas (text block already started in initial events)
                     if (delta?.content) {
-                      // Send content_block_start on first content (lazy initialization)
-                      if (!textBlockStarted) {
-                        sendSSE("content_block_start", {
-                          type: "content_block_start",
-                          index: 0,
-                          content_block: {
-                            type: "text",
-                            text: "",
-                          },
-                        });
-                        textBlockStarted = true;
-                      }
-
                       log(`[Proxy] Sending content delta: ${delta.content}`);
                       sendSSE("content_block_delta", {
                         type: "content_block_delta",
