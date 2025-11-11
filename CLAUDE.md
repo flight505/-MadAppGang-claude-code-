@@ -12,7 +12,7 @@
 A complete Claude Code plugin marketplace with enterprise-level architecture:
 
 - **Plugin Marketplace** (`mag-claude-plugins`)
-- **Frontend Development Plugin** (v3.1.0) - Full-featured Sonnet-powered
+- **Frontend Development Plugin** (v3.1.1) - Full-featured Sonnet-powered
   - 10 Specialized Agents (CSS Developer + Designer + UI Developer ecosystem with multi-model review)
   - 6 Slash Commands
   - **11 Modular Skills** (efficient context usage - load only what you need):
@@ -444,24 +444,24 @@ Include marketplace in project settings (requires folder trust):
 **Detailed Release Notes:** See [RELEASES.md](./RELEASES.md) for comprehensive release documentation
 
 **Current Versions:**
-- Frontend Plugin: **v3.1.0** (2025-11-11)
+- Frontend Plugin: **v3.1.1** (2025-11-11)
 - Code Analysis Plugin: **v1.1.0**
 - Bun Backend Plugin: **v1.2.0**
+- Claudish CLI: **v1.1.2** (2025-11-11)
 
-**Latest Changes (v3.1.0):**
-- ✅ Replaced Claudish MCP with CLI-based external AI delegation
-- ✅ Added stdin support for large prompts (git diffs)
-- ✅ Simplified architecture: Agent → Bash → CLI → OpenRouter
-- ✅ No MCP configuration needed
-- ✅ 7 agents updated with new PROXY_MODE pattern
-- ✅ Maintained all multi-model review functionality
+**Latest Changes (v3.1.1):**
+- ✅ Clarified Claudish CLI usage modes in all agents and commands
+- ✅ Updated PROXY_MODE instructions with accurate defaults
+- ✅ Added distinctions between interactive and single-shot modes
+- ✅ Companion release: Claudish v1.1.2 (interactive by default + performance fixes)
+- ✅ No functional changes - documentation clarity only
 
 **Git Tags:**
-- Frontend: `plugins/frontend/v3.1.0`
+- Frontend: `plugins/frontend/v3.1.1`
 - Use correct tag format when releasing: `plugins/{plugin-name}/vX.Y.Z`
 
 ---
 
 **Maintained by:** Jack Rudenko @ MadAppGang
 **Last Updated:** November 11, 2025
-**Version:** 3.1.0
+**Version:** 3.1.1

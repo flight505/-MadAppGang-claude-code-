@@ -5,6 +5,32 @@ All notable changes to the MAG Claude Plugins project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2025-11-11
+
+### Changed
+
+#### Documentation Improvements
+
+**Clarified Claudish CLI usage across all agents and commands:**
+- Updated PROXY_MODE instructions in 7 agents with accurate Claudish CLI defaults
+- Added clear distinctions between interactive and single-shot modes
+- Updated commands and documentation files for consistency
+
+**Claudish CLI Modes:**
+- **Interactive mode** (default): `claudish` - Shows model selector, persistent session
+- **Single-shot mode** (automation): `npx claudish --model <model> --stdin --quiet` - One task, exits
+
+**Files Updated:**
+- Agents: reviewer, developer, architect, designer, css-developer, ui-developer, test-architect
+- Commands: implement.md
+- Documentation: DEPENDENCIES.md, mcp-servers/README.md
+
+**Companion Release:** Claudish v1.1.2 (interactive mode by default + async buffered logging performance fix)
+
+**No functional changes** - this is purely documentation clarity for better user experience.
+
+---
+
 ## [3.1.0] - 2025-11-11
 
 ### Changed

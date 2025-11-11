@@ -6,6 +6,85 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 ---
 
+## Frontend Plugin v3.1.1 (2025-11-11)
+
+**Tag:** `plugins/frontend/v3.1.1`
+**Commit:** `79b1448`
+
+### Overview
+
+Documentation improvements clarifying Claudish CLI usage modes across all agents and commands. No functional changes - purely documentation clarity for better user experience.
+
+### What Changed
+
+#### Documentation Clarifications
+
+**Updated 7 agents with accurate Claudish CLI instructions:**
+- `reviewer.md` - Senior Code Reviewer
+- `developer.md` - TypeScript Frontend Developer
+- `architect.md` - Frontend Architecture Planner
+- `designer.md` - UI/UX Design Reviewer
+- `css-developer.md` - CSS Architecture Specialist
+- `ui-developer.md` - Senior UI Developer
+- `test-architect.md` - Test Strategy & Implementation
+
+**Clarified Claudish CLI modes:**
+```markdown
+## Interactive Mode (Default)
+- Command: `claudish`
+- Shows model selector UI
+- Persistent session
+- User selects model interactively
+
+## Single-Shot Mode (Automation)
+- Command: `npx claudish --model <model> --stdin --quiet`
+- No model selector
+- One task, returns result, exits
+- Used by agents for PROXY_MODE delegation
+```
+
+**Updated files:**
+- Agent PROXY_MODE instructions (7 files)
+- `/implement` command documentation
+- `DEPENDENCIES.md` - Setup instructions
+- `mcp-servers/README.md` - Claudish section
+
+### Companion Release
+
+**Claudish v1.1.2** released alongside with:
+- Interactive mode as default (no args = shows model selector)
+- `--version` flag added
+- Async buffered logging (1000x fewer disk operations)
+- No log files by default (debug only with `--debug` flag)
+- Package renamed: `@madappgang/claudish` → `claudish`
+
+### Migration Guide
+
+**No migration needed!** This is a documentation-only release.
+
+If you're using v3.1.0, the functionality is identical. Update to v3.1.1 to get clearer documentation.
+
+### For Users
+
+**What to expect:**
+- Same functionality as v3.1.0
+- Clearer documentation about Claudish modes
+- Better understanding of when/how to use interactive vs single-shot mode
+
+### For Maintainers
+
+**Tag format reminder:**
+```bash
+# ✅ CORRECT
+git tag -a plugins/frontend/v3.1.1 -m "..."
+git push origin plugins/frontend/v3.1.1
+
+# ❌ WRONG
+git tag -a frontend-v3.1.1 -m "..."
+```
+
+---
+
 ## Frontend Plugin v3.1.0 (2025-11-11)
 
 **Tag:** `plugins/frontend/v3.1.0`
