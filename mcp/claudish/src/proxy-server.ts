@@ -636,7 +636,9 @@ export async function createProxyServer(
             const sendSSE = (event: string, data: any) => {
               // Guard against writing to closed controller (happens when user interrupts)
               if (isClosed) {
-                log(`[Proxy] Skipping SSE event ${event} - controller already closed`);
+                if (isLoggingEnabled()) {
+                  log(`[Proxy] Skipping SSE event ${event} - controller already closed`);
+                }
                 return;
               }
 
@@ -644,8 +646,8 @@ export async function createProxyServer(
                 const sseMessage = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
                 controller.enqueue(encoder.encode(sseMessage));
 
-                // DEBUG: Log successful SSE sends for critical events
-                if (event === "message_start" || event === "content_block_start" || event === "content_block_stop" || event === "message_stop") {
+                // DEBUG: Log successful SSE sends for critical events (only when logging enabled)
+                if (isLoggingEnabled() && (event === "message_start" || event === "content_block_start" || event === "content_block_stop" || event === "message_stop")) {
                   const logData = event === "content_block_start" || event === "content_block_stop"
                     ? { event, index: data.index, type: data.content_block?.type }
                     : { event };
@@ -654,10 +656,14 @@ export async function createProxyServer(
               } catch (error: any) {
                 // Handle "Controller is already closed" error gracefully
                 if (!isClosed && error?.message?.includes("already closed")) {
-                  log(`[Proxy] Controller closed during ${event} event, marking as closed`);
+                  if (isLoggingEnabled()) {
+                    log(`[Proxy] Controller closed during ${event} event, marking as closed`);
+                  }
                   isClosed = true;
                 } else if (!isClosed) {
-                  log(`[Proxy] Error sending SSE event ${event}: ${error?.message || error}`);
+                  if (isLoggingEnabled()) {
+                    log(`[Proxy] Error sending SSE event ${event}: ${error?.message || error}`);
+                  }
                 }
               }
             };
@@ -666,11 +672,15 @@ export async function createProxyServer(
             // This prevents duplicate events from dual termination paths ([DONE] vs unexpected end)
             const finalizeStream = (reason: "done" | "unexpected" | "error", errorMessage?: string) => {
               if (streamFinalized) {
-                log(`[Proxy] Stream already finalized, skipping duplicate finalization from ${reason}`);
+                if (isLoggingEnabled()) {
+                  log(`[Proxy] Stream already finalized, skipping duplicate finalization from ${reason}`);
+                }
                 return;
               }
 
-              log(`[Proxy] Finalizing stream (reason: ${reason})`);
+              if (isLoggingEnabled()) {
+                log(`[Proxy] Finalizing stream (reason: ${reason})`);
+              }
               streamFinalized = true;
 
               // THINKING BLOCK SUPPORT: Close thinking block if still open
@@ -680,7 +690,9 @@ export async function createProxyServer(
                   index: reasoningBlockIndex,
                 });
                 reasoningBlockStarted = false;
-                log(`[Proxy] Closed thinking block at index ${reasoningBlockIndex}`);
+                if (isLoggingEnabled()) {
+                  log(`[Proxy] Closed thinking block at index ${reasoningBlockIndex}`);
+                }
               }
 
               // Close text block if still open
@@ -696,7 +708,7 @@ export async function createProxyServer(
               for (const [toolIndex, toolState] of toolCalls.entries()) {
                 if (toolState.started && !toolState.closed) {
                   // VALIDATION FIX: Check JSON completeness and report issues
-                  if (toolState.args) {
+                  if (isLoggingEnabled() && toolState.args) {
                     try {
                       JSON.parse(toolState.args);
                       log(`[Proxy] Tool ${toolState.name} JSON valid, closing block at index ${toolState.blockIndex}`);
@@ -1000,7 +1012,9 @@ export async function createProxyServer(
                               index: textBlockIndex,
                             });
                             textBlockStarted = false;
-                            log(`[Proxy] Closed initial text block to start thinking block`);
+                            if (isLoggingEnabled()) {
+                              log(`[Proxy] Closed initial text block to start thinking block`);
+                            }
                           }
 
                           // Start thinking block
@@ -1015,14 +1029,18 @@ export async function createProxyServer(
                             },
                           });
                           reasoningBlockStarted = true;
-                          log(`[Proxy] Started thinking block at index ${reasoningBlockIndex}`);
+                          if (isLoggingEnabled()) {
+                            log(`[Proxy] Started thinking block at index ${reasoningBlockIndex}`);
+                          }
                         }
 
                         // Send thinking delta
-                        logStructured("Thinking Delta", {
-                          thinking: reasoningText,
-                          blockIndex: reasoningBlockIndex,
-                        });
+                        if (isLoggingEnabled()) {
+                          logStructured("Thinking Delta", {
+                            thinking: reasoningText,
+                            blockIndex: reasoningBlockIndex,
+                          });
+                        }
                         sendSSE("content_block_delta", {
                           type: "content_block_delta",
                           index: reasoningBlockIndex,
@@ -1041,7 +1059,9 @@ export async function createProxyServer(
                           index: reasoningBlockIndex,
                         });
                         reasoningBlockStarted = false;
-                        log(`[Proxy] Closed thinking block at index ${reasoningBlockIndex}, transitioning to content`);
+                        if (isLoggingEnabled()) {
+                          log(`[Proxy] Closed thinking block at index ${reasoningBlockIndex}, transitioning to content`);
+                        }
                       }
 
                       // Phase 5: Handle regular content → text block
@@ -1058,7 +1078,9 @@ export async function createProxyServer(
                             },
                           });
                           textBlockStarted = true;
-                          log(`[Proxy] Started text block at index ${textBlockIndex}`);
+                          if (isLoggingEnabled()) {
+                            log(`[Proxy] Started text block at index ${textBlockIndex}`);
+                          }
                         }
 
                         // Process content through model adapter (handles Grok XML tool calls, etc.)
@@ -1067,7 +1089,9 @@ export async function createProxyServer(
 
                         // Handle extracted tool calls from special formats (e.g., Grok XML)
                         if (adapterResult.extractedToolCalls.length > 0) {
-                          log(`[Proxy] Adapter extracted ${adapterResult.extractedToolCalls.length} tool calls from special format`);
+                          if (isLoggingEnabled()) {
+                            log(`[Proxy] Adapter extracted ${adapterResult.extractedToolCalls.length} tool calls from special format`);
+                          }
 
                           // Close text block if it was started
                           if (textBlockStarted) {
@@ -1082,17 +1106,21 @@ export async function createProxyServer(
                           for (const toolCall of adapterResult.extractedToolCalls) {
                             // ROBUSTNESS FIX: Skip duplicate tool IDs
                             if (toolCallIds.has(toolCall.id)) {
-                              log(`[Proxy] WARNING: Skipping duplicate extracted tool call with ID ${toolCall.id}`);
+                              if (isLoggingEnabled()) {
+                                log(`[Proxy] WARNING: Skipping duplicate extracted tool call with ID ${toolCall.id}`);
+                              }
                               continue;
                             }
                             toolCallIds.add(toolCall.id);
 
                             const toolBlockIndex = currentBlockIndex++;
-                            logStructured("Extracted Tool Call", {
-                              name: toolCall.name,
-                              blockIndex: toolBlockIndex,
-                              id: toolCall.id,
-                            });
+                            if (isLoggingEnabled()) {
+                              logStructured("Extracted Tool Call", {
+                                name: toolCall.name,
+                                blockIndex: toolBlockIndex,
+                                id: toolCall.id,
+                              });
+                            }
 
                             // Send content_block_start
                             sendSSE("content_block_start", {
@@ -1125,11 +1153,13 @@ export async function createProxyServer(
 
                         // Send cleaned content as text_delta (NOT thinking_delta)
                         if (adapterResult.cleanedText) {
-                          logStructured("Content Delta", {
-                            text: adapterResult.cleanedText,
-                            wasTransformed: adapterResult.wasTransformed,
-                            blockIndex: textBlockIndex,
-                          });
+                          if (isLoggingEnabled()) {
+                            logStructured("Content Delta", {
+                              text: adapterResult.cleanedText,
+                              wasTransformed: adapterResult.wasTransformed,
+                              blockIndex: textBlockIndex,
+                            });
+                          }
                           sendSSE("content_block_delta", {
                             type: "content_block_delta",
                             index: textBlockIndex,
@@ -1141,7 +1171,9 @@ export async function createProxyServer(
                         }
                       } else if (hasEncryptedReasoning) {
                         // Encrypted reasoning detected - update activity but don't send visible text
-                        log(`[Proxy] Encrypted reasoning detected (keeping connection alive)`);
+                        if (isLoggingEnabled()) {
+                          log(`[Proxy] Encrypted reasoning detected (keeping connection alive)`);
+                        }
                       }
                     }
 
@@ -1162,7 +1194,9 @@ export async function createProxyServer(
 
                             // Check if we've already seen this tool ID
                             if (toolCallIds.has(toolId)) {
-                              log(`[Proxy] WARNING: Duplicate tool ID ${toolId}, regenerating`);
+                              if (isLoggingEnabled()) {
+                                log(`[Proxy] WARNING: Duplicate tool ID ${toolId}, regenerating`);
+                              }
                               // Regenerate with more randomness to avoid collision
                               toolId = `tool_${Date.now()}_${toolIndex}_${Math.random().toString(36).slice(2)}`;
                             }
@@ -1179,11 +1213,13 @@ export async function createProxyServer(
                               closed: false
                             };
                             toolCalls.set(toolIndex, toolState);
-                            logStructured("Starting Tool Call", {
-                              name: toolState.name,
-                              blockIndex: toolState.blockIndex,
-                              id: toolId,
-                            });
+                            if (isLoggingEnabled()) {
+                              logStructured("Starting Tool Call", {
+                                name: toolState.name,
+                                blockIndex: toolState.blockIndex,
+                                id: toolId,
+                              });
+                            }
                           }
 
                           // Send content_block_start for this tool
@@ -1215,11 +1251,13 @@ export async function createProxyServer(
                           const argChunk = toolCall.function.arguments;
                           toolState.args += argChunk;
 
-                          logStructured("Tool Argument Delta", {
-                            toolName: toolState.name,
-                            chunk: argChunk,
-                            totalLength: toolState.args.length,
-                          });
+                          if (isLoggingEnabled()) {
+                            logStructured("Tool Argument Delta", {
+                              toolName: toolState.name,
+                              chunk: argChunk,
+                              totalLength: toolState.args.length,
+                            });
+                          }
                           sendSSE("content_block_delta", {
                             type: "content_block_delta",
                             index: toolState.blockIndex,

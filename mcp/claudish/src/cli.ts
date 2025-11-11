@@ -179,7 +179,7 @@ export function parseArgs(args: string[]): ClaudishConfig {
  * Print version information
  */
 function printVersion(): void {
-  console.log("claudish version 1.1.2");
+  console.log("claudish version 1.2.1");
 }
 
 /**

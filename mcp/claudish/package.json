@@ -1,6 +1,6 @@
 {
   "name": "claudish",
-  "version": "1.1.2",
+  "version": "1.2.1",
   "description": "CLI tool to run Claude Code with any OpenRouter model (Grok, GPT-5, MiniMax, etc.) via local Anthropic API-compatible proxy",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,7 +12,7 @@
     "dev:grok": "bun run src/index.ts --interactive --model x-ai/grok-code-fast-1",
     "dev:grok:debug": "bun run src/index.ts --interactive --debug --log-level info --model x-ai/grok-code-fast-1",
     "dev:info": "bun run src/index.ts --interactive --monitor",
-    "build": "bun build src/index.ts --outdir dist --target bun --minify --external react --external ink --external react-devtools-core && chmod +x dist/index.js",
+    "build": "bun build src/index.ts --outdir dist --target bun && chmod +x dist/index.js",
     "link": "npm link",
     "unlink": "npm unlink -g claudish",
     "install-global": "bun run build && npm link",
@@ -21,12 +21,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "install": "bun run build && bun link"
+    "install": "bun run build && bun link",
+    "postinstall": "node scripts/postinstall.cjs"
   },
   "dependencies": {
-    "hono": "^4.9.0",
-    "ink": "^6.4.0",
-    "react": "^19.2.0"
+    "hono": "^4.9.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -35,11 +34,13 @@
     "typescript": "^5.7.0"
   },
   "files": [
-    "dist/"
+    "dist/",
+    "scripts/"
   ],
   "engines": {
-    "node": ">=18.0.0"
+    "bun": ">=1.0.0"
   },
+  "preferGlobal": true,
   "keywords": [
     "claude",
     "claude-code",

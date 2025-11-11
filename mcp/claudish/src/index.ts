@@ -3,7 +3,7 @@
 import { checkClaudeInstalled, runClaudeWithProxy } from "./claude-runner.js";
 import { parseArgs } from "./cli.js";
 import { DEFAULT_PORT_RANGE } from "./config.js";
-import { selectModelInteractively } from "./interactive-cli.js";
+import { selectModelInteractively } from "./simple-selector.js";
 import { initLogger, getLogFilePath } from "./logger.js";
 import { findAvailablePort } from "./port-manager.js";
 import { createProxyServer } from "./proxy-server.js";
@@ -46,7 +46,6 @@ async function main() {
 
     // Show interactive model selector ONLY in interactive mode when model not specified
     if (config.interactive && !config.monitor && !config.model) {
-      console.log(""); // Empty line for better UI
       config.model = await selectModelInteractively();
       console.log(""); // Empty line after selection
     }

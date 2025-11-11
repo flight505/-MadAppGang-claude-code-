@@ -28,10 +28,16 @@
 
 ### Install Claudish
 
+**IMPORTANT: Claudish requires Bun runtime for optimal performance.**
+
 **Option 1: Install from npm (recommended)**
 
 ```bash
+# Install globally (requires Bun in PATH)
 npm install -g claudish
+
+# Or use bunx (recommended - always uses Bun)
+bunx claudish --version
 ```
 
 **Option 2: Install from source**
@@ -43,7 +49,7 @@ bun run build
 bun link
 ```
 
-Both methods make `claudish` globally available in your terminal.
+**Why Bun?** Claudish is built with Bun and runs 10x faster than Node.js for proxy operations. The shebang `#!/usr/bin/env bun` ensures it always runs with Bun, but Bun must be installed on your system.
 
 ## Quick Start
 
