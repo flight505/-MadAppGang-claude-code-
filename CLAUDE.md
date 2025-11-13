@@ -98,6 +98,7 @@ claude-code/
 ├── .env.example              # Environment template
 ├── LICENSE                   # MIT
 ├── .gitignore               # Excludes secrets
+├── RELEASE_PROCESS.md        # Plugin release process guide
 ├── docs/                    # User documentation
 │   ├── frontend-development.md
 │   └── local-development.md
@@ -107,6 +108,9 @@ claude-code/
 │   ├── IMPROVEMENTS_SUMMARY.md
 │   ├── COMPLETE_PLUGIN_SUMMARY.md
 │   └── FINAL_SUMMARY.md
+├── skills/                  # Project-level skills
+│   └── release/             # Plugin release process skill
+│       └── SKILL.md
 ├── .claude-plugin/
 │   └── marketplace.json
 └── plugins/
@@ -138,10 +142,13 @@ claude-code/
 - `README.md` - Start here for installation and usage
 - `.env.example` - Template for required environment variables
 - `ai-docs/TEAM_CONFIG_ARCHITECTURE.md` - Setup guide
+- `skills/release/SKILL.md` - Plugin release process (for maintainers)
 
 ### For Maintainers
-- `.claude-plugin/marketplace.json` - Marketplace configuration
+- `.claude-plugin/marketplace.json` - Marketplace configuration ⚠️ **Update when releasing!**
 - `plugins/frontend/plugin.json` - Plugin manifest
+- `RELEASE_PROCESS.md` - Complete release process documentation
+- `skills/release/SKILL.md` - Quick reference release skill
 - `ai-docs/DYNAMIC_MCP_GUIDE.md` - MCP configuration patterns
 
 ### For Contributors
