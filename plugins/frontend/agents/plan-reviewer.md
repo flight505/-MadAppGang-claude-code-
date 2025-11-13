@@ -47,36 +47,50 @@ PROXY_MODE: {model_name}
 
    **STEP 2: Prepare prompt and call Claudish**
    - **Mode**: Single-shot mode (non-interactive, returns result and exits)
+   - **Key Insight**: Claudish inherits the current directory's `.claude` configuration, so all agents are available
    - **Required flags**:
      - `--model {model_name}` - Specify OpenRouter model
      - `--stdin` - Read prompt from stdin (handles unlimited size)
      - `--quiet` - Suppress [claudish] logs (clean output only)
 
-   **Correct syntax using printf + pipe:**
+   **CRITICAL: Agent Invocation Pattern**
+   Instead of sending a raw prompt, invoke the plan-reviewer agent via the Task tool:
    ```bash
-   # Use printf to pass prompt via stdin (handles multiline, escapes, etc.)
-   printf '%s' "$FULL_PROMPT" | npx claudish --stdin --model {model_name} --quiet
+   # Construct prompt that invokes the agent (NOT raw review request)
+   AGENT_PROMPT="Use the Task tool to launch the 'plan-reviewer' agent with this task:
+
+Review the architecture plan in AI-DOCS/{filename}.md and provide comprehensive feedback."
+
+   # Call Claudish - it will invoke the agent with full configuration (tools, skills, instructions)
+   printf '%s' "$AGENT_PROMPT" | npx claudish --stdin --model {model_name} --quiet
    ```
+
+   **Why This Works:**
+   - Claudish inherits `.claude` settings and all plugins/agents
+   - The external model invokes the plan-reviewer agent via Task tool
+   - The agent has access to its full configuration (tools, skills, instructions)
+   - This ensures consistent behavior across different models
 
    **WRONG syntax (DO NOT USE):**
    ```bash
+   # ❌ WRONG: Raw prompt without agent invocation
+   PROMPT="Review this architecture plan..."
+   printf '%s' "$PROMPT" | npx claudish --stdin --model {model_name} --quiet
+
    # ❌ WRONG: heredoc in subshell context may fail
    cat <<'EOF' | npx claudish --stdin --model {model_name} --quiet
-   $FULL_PROMPT
+   Review the plan...
    EOF
 
    # ❌ WRONG: echo may interpret escapes
-   echo "$FULL_PROMPT" | npx claudish --stdin --model {model_name} --quiet
-
-   # ❌ WRONG: inline prompt (fails for long prompts)
-   npx claudish --model {model_name} --quiet "$FULL_PROMPT"
+   echo "$PROMPT" | npx claudish --stdin --model {model_name} --quiet
    ```
 
-   **Why printf?**
-   - Handles newlines, special characters, and escapes correctly
-   - Works reliably in all shell contexts
-   - No issues with heredoc in subprocesses
-   - Recommended by Bash best practices
+   **Why Agent Invocation?**
+   - External model gets access to full agent configuration (tools, skills, instructions)
+   - Consistent behavior across different models
+   - Proper context and guidelines for the review task
+   - Uses printf for reliable prompt handling (newlines, special characters, escapes)
 
    **COMPLETE WORKING EXAMPLE:**
    ```bash
@@ -93,25 +107,14 @@ PROXY_MODE: {model_name}
      exit 1
    fi
 
-   # Step 2: Prepare the full prompt
-   SYSTEM_CONTEXT="You are an expert software architect reviewing an implementation plan BEFORE any code is written."
+   # Step 2: Construct agent invocation prompt (NOT raw review prompt)
+   # This ensures the external model uses the plan-reviewer agent with full configuration
+   AGENT_PROMPT="Use the Task tool to launch the 'plan-reviewer' agent with this task:
 
-   TASK_PROMPT="Review the architecture plan and identify:
-   1. Architectural issues
-   2. Missing considerations
-   3. Alternative approaches
-   4. Implementation risks
+Review the architecture plan in AI-DOCS/api-compliance-implementation-plan.md and provide comprehensive feedback."
 
-   **Architecture Plan File:** AI-DOCS/api-compliance-implementation-plan.md
-
-   Read this file and provide comprehensive review."
-
-   FULL_PROMPT="${SYSTEM_CONTEXT}
-
-${TASK_PROMPT}"
-
-   # Step 3: Call Claudish with printf + pipe
-   RESULT=$(printf '%s' "$FULL_PROMPT" | npx claudish --stdin --model x-ai/grok-code-fast-1 --quiet 2>&1)
+   # Step 3: Call Claudish - it invokes the agent with full configuration
+   RESULT=$(printf '%s' "$AGENT_PROMPT" | npx claudish --stdin --model x-ai/grok-code-fast-1 --quiet 2>&1)
 
    # Step 4: Check if Claudish succeeded
    if [ $? -eq 0 ]; then

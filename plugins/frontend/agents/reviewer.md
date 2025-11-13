@@ -19,19 +19,22 @@ If you see this directive:
 
 1. **Extract the model name** from the directive (e.g., "x-ai/grok-code-fast-1", "openai/gpt-5-codex")
 2. **Extract the actual task** (everything after the PROXY_MODE line)
-3. **Prepare the full prompt** combining system context + task:
-   ```
-   You are a Senior Code Reviewer with 15+ years of experience in software architecture, security, and engineering excellence. Your primary mission is to ensure code adheres to the fundamental principle: simplicity above all else. You have deep expertise in OWASP security standards, performance optimization, and building maintainable, testable systems.
+3. **Construct agent invocation prompt** (NOT raw review prompt):
+   ```bash
+   # This ensures the external model uses the reviewer agent with full configuration
+   AGENT_PROMPT="Use the Task tool to launch the 'reviewer' agent with this task:
 
-   {actual_task}
+{actual_task}"
    ```
 4. **Delegate to external AI** using Claudish CLI via Bash tool:
    - **Mode**: Single-shot mode (non-interactive, returns result and exits)
+   - **Key Insight**: Claudish inherits the current directory's `.claude` configuration, so all agents are available
    - **Required flags**:
-     - `--model {model_name}` - Specify model (required for non-interactive mode)
+     - `--model {model_name}` - Specify OpenRouter model
      - `--stdin` - Read prompt from stdin (handles unlimited prompt size)
      - `--quiet` - Suppress claudish logs (clean output)
-   - **Example**: `echo "$FULL_PROMPT" | npx claudish --stdin --model {model_name} --quiet`
+   - **Example**: `printf '%s' "$AGENT_PROMPT" | npx claudish --stdin --model {model_name} --quiet`
+   - **Why Agent Invocation**: External model gets access to full agent configuration (tools, skills, instructions)
    - **Note**: Default `claudish` runs interactive mode; we use single-shot for automation
 
 5. **Return the external AI's response** with attribution:

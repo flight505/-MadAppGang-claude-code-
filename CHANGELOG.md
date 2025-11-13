@@ -5,6 +5,53 @@ All notable changes to the MAG Claude Plugins project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2025-11-13
+
+### Fixed
+
+#### Claudish Proxy Mode - Agent Configuration Inheritance
+
+**CRITICAL FIX**: External AI models now invoke agents with full configuration when using Claudish proxy mode.
+
+**Problem:**
+- When agents used `claudish` in PROXY_MODE to call external LLMs (Grok, GPT-5, etc.), they were sending raw prompts
+- External models didn't have access to agent configuration (tools, skills, instructions)
+- This led to inconsistent behavior and missing context
+
+**Solution:**
+- Updated all 8 agents to use agent invocation pattern via Task tool
+- Claudish inherits current directory's `.claude` configuration, so all agents are available
+- External models now invoke the specific agent (e.g., "Use Task tool to launch 'plan-reviewer'")
+- Ensures full agent configuration (tools, skills, instructions) is available to external models
+
+**Files Updated:**
+- `plugins/frontend/agents/plan-reviewer.md`
+- `plugins/frontend/agents/designer.md`
+- `plugins/frontend/agents/architect.md`
+- `plugins/frontend/agents/css-developer.md`
+- `plugins/frontend/agents/developer.md`
+- `plugins/frontend/agents/reviewer.md`
+- `plugins/frontend/agents/test-architect.md`
+- `plugins/frontend/agents/ui-developer.md`
+
+**Example Change:**
+```bash
+# Before (raw prompt)
+PROMPT="You are an expert architect. Review this plan..."
+printf '%s' "$PROMPT" | npx claudish --stdin --model x-ai/grok-code-fast-1 --quiet
+
+# After (agent invocation)
+AGENT_PROMPT="Use the Task tool to launch the 'architect' agent with this task:
+Review the architecture plan..."
+printf '%s' "$AGENT_PROMPT" | npx claudish --stdin --model x-ai/grok-code-fast-1 --quiet
+```
+
+**Benefits:**
+- ✅ Consistent behavior across Sonnet and external models
+- ✅ Full agent context (tools: Read, Write, Bash; skills; instructions)
+- ✅ Maintainability - agent changes automatically picked up by external models
+- ✅ Simplified approach - no special flags needed
+
 ## [3.4.0] - 2025-11-13
 
 ### Added
