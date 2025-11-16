@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.4.1] - 2025-11-16
+
+### Fixed
+- ✅ **npm Installation Error** - Removed leftover `install` script that tried to build from source during `npm install`
+  - The package is now pre-built and ready to use
+  - No more "FileNotFound opening root directory 'src'" errors
+  - Users can now successfully install with `npm install -g claudish@latest`
+- ✅ **Misleading Bun Requirement Warning** - Removed incorrect warning about needing Bun runtime
+  - Claudish runs perfectly with **Node.js only** (no Bun required!)
+  - The built binary uses `#!/usr/bin/env node` and Node.js dependencies
+  - Postinstall now shows helpful usage examples instead of false warnings
+
+### Technical Details
+- Removed: `"install": "bun run build && bun link"` script that required source files
+- Simplified: `postinstall` script now just shows usage instructions (no runtime checks)
+- Package includes pre-built `dist/index.js` (142 KB) that runs with Node.js 18+
+- No source files needed in npm package
+- **Clarification**: Bun is only needed for **development** (building from source), not for **using** the tool
+
+---
+
 ## [1.4.0] - 2025-11-15
 
 ### Added
