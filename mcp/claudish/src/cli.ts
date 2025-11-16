@@ -1,6 +1,17 @@
 import { ENV } from "./config.js";
 import type { ClaudishConfig } from "./types.js";
 import { loadModelInfo, getAvailableModels } from "./model-loader.js";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+// Read version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, "../package.json"), "utf-8")
+);
+const VERSION = packageJson.version;
 
 /**
  * Parse CLI arguments and environment variables
@@ -189,7 +200,7 @@ export function parseArgs(args: string[]): ClaudishConfig {
  * Print version information
  */
 function printVersion(): void {
-  console.log("claudish version 1.3.1");
+  console.log(`claudish version ${VERSION}`);
 }
 
 /**
