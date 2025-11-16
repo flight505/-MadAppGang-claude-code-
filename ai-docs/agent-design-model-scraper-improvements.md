@@ -165,17 +165,32 @@ Phase 3: Search for "Grok Code Fast 1" at /models?q=Grok+Code+Fast+1 ✅
 - After filtering them out (native access), we need 9 non-Anthropic models
 - Extract 12 → Filter 3-4 → Results in 8-9 usable models ✅
 
+**CRITICAL UPDATE:** Provider extraction is reliable because it comes from **slug format**, not separate DOM search.
+
 ```javascript
 // Updated Phase 2 extraction - now extracts 12 models
+// CRITICAL: Extract from ranking cards/items, NOT all page links
 (function() {
   const models = [];
-  const modelLinks = Array.from(document.querySelectorAll('a[href*="/models/"]'));
 
-  // Changed from 9 to 12 to account for Anthropic filtering
-  modelLinks.slice(0, 12).forEach((link, index) => {
+  // Strategy: Target ranking cards specifically (not all links on page)
+  // Try multiple selectors to find the actual ranking list
+  const rankingCards =
+    document.querySelectorAll('[data-testid="model-ranking"]') ||
+    document.querySelectorAll('.ranking-item') ||
+    // Fallback: Get first 12 model links (assumes they appear in ranking order)
+    Array.from(document.querySelectorAll('a[href*="/models/"]')).slice(0, 12);
+
+  rankingCards.forEach((card, index) => {
+    // Extract link from THIS specific ranking card
+    const link = card.querySelector('a[href*="/models/"]') || card;
     const href = link.getAttribute('href');
     const slug = href.split('/models/')[1].split('?')[0];
-    const provider = slug.split('/')[0]; // Extract provider early (NEW!)
+
+    // Provider extraction: RELIABLE because slug format is standardized
+    // Slug format: "provider/model-name" (e.g., "x-ai/grok-code-fast-1")
+    // Provider = first part before "/"
+    const provider = slug.split('/')[0]; // ✅ Extracted from slug, not DOM search
 
     models.push({
       rank: index + 1,
@@ -190,13 +205,23 @@ Phase 3: Search for "Grok Code Fast 1" at /models?q=Grok+Code+Fast+1 ✅
 })();
 ```
 
+**Why Provider Extraction is Reliable:**
+
+| Aspect | Explanation |
+|--------|-------------|
+| **Source** | Provider comes from slug (standardized format: `provider/model-name`) |
+| **Slug Extraction** | From ranking card link (specific element, not global search) |
+| **Format Guarantee** | OpenRouter slug format is consistent across all models |
+| **Not Separate DOM Search** | Don't search for provider field separately in DOM |
+| **Reliability** | High - slug format won't change (core URL structure) |
+
 **Example Output:**
 ```javascript
 [
-  { rank: 1, name: "Grok Code Fast 1", provider: "x-ai", ... },
-  { rank: 2, name: "MiniMax M2", provider: "minimax", ... },
-  { rank: 3, name: "Claude Sonnet 4.5", provider: "anthropic", ... }, // Will be filtered
-  { rank: 4, name: "Gemini 2.5 Flash", provider: "google", ... },
+  { rank: 1, name: "Grok Code Fast 1", slug: "x-ai/grok-code-fast-1", provider: "x-ai", ... },
+  { rank: 2, name: "MiniMax M2", slug: "minimax/minimax-m2", provider: "minimax", ... },
+  { rank: 3, name: "Claude Sonnet 4.5", slug: "anthropic/claude-sonnet-4.5", provider: "anthropic", ... }, // Will be filtered
+  { rank: 4, name: "Gemini 2.5 Flash", slug: "google/gemini-2.5-flash", provider: "google", ... },
   // ... 12 total (including ~3-4 Anthropic models)
 ]
 ```
@@ -272,26 +297,58 @@ Phase 3: Extracting details for 9 non-Anthropic models...
 
 ### Phase 3: Extract Model Details via Search (MAJOR CHANGES)
 
-**NEW WORKFLOW:**
+**NEW WORKFLOW WITH PROVIDER VALIDATION:**
+
+**CRITICAL FIX #1:** Add provider validation BEFORE fuzzy matching to handle multiple search results with similar names.
+
+**CRITICAL FIX #2:** Increase navigation timeouts from 2s → 3s for better reliability on slow connections.
 
 ```xml
 <phase number="3" name="Extract Model Details via Search">
+  <configuration>
+    <parameter name="fuzzy_match_threshold" default="0.6" description="Minimum confidence for name matching">
+      Default: 0.6 (60% confidence)
+      Adjustable: Can be lowered to 0.5 for more permissive matching
+      Adjustable: Can be raised to 0.8 for stricter matching
+    </parameter>
+    <parameter name="navigation_timeout" default="3000" description="Milliseconds to wait after navigation">
+      Default: 3s (increased from 2s for better reliability)
+    </parameter>
+  </configuration>
+
   <step number="1">For each model in detail_extraction_queue (non-Anthropic models only):
     <substep>1a. Construct search URL: https://openrouter.ai/models?q={encodeURIComponent(model.name)}
 
     **EXAMPLE:**
     - Model name: "Grok Code Fast 1"
+    - Expected provider: "x-ai" (from Phase 2 extraction)
     - Search URL: https://openrouter.ai/models?q=Grok%20Code%20Fast%201
     </substep>
 
     <substep>1b. Use mcp__chrome-devtools__navigate to search page</substep>
 
-    <substep>1c. Wait 2 seconds for search results to load</substep>
+    <substep>1c. Wait 3 seconds for search results to load (UPDATED: was 2s)</substep>
 
-    <substep>1d. Use mcp__chrome-devtools__evaluate to execute JavaScript extracting:
-      - First search result link (most relevant model)
-      - Model slug from link href
-      - Verify model name matches (fuzzy match acceptable)
+    <substep>1d. Use mcp__chrome-devtools__evaluate to execute JavaScript extracting search results:
+      **CRITICAL: Search result disambiguation with provider validation**
+
+      For each search result:
+        1. Extract slug from result link
+        2. Parse provider from slug (first part before "/")
+        3. Check if provider matches expected provider from Phase 2
+        4. If provider matches, perform fuzzy match on name
+        5. If both match, select this result
+        6. Return first matching result
+
+      **Validation Order:**
+        1. Provider match (MUST match)
+        2. Name fuzzy match (confidence >= threshold)
+
+      **Example Disambiguation:**
+        Search for "Claude Opus" returns:
+          - Result 1: anthropic/claude-opus-4 (provider: anthropic) ← Would match if expected provider is "anthropic"
+          - Result 2: anthropic/claude-opus-3.5 (provider: anthropic) ← Would be skipped (Result 1 already matched)
+          - Result 3: openai/claude-opus-clone (provider: openai) ← Would be skipped (provider mismatch)
     </substep>
 
     <substep>1e. If no search results found:
@@ -301,15 +358,22 @@ Phase 3: Extracting details for 9 non-Anthropic models...
       - Continue (don't fail entire process)
     </substep>
 
-    <substep>1f. If search results found:
-      - Extract first result's href attribute
-      - Parse slug from href (e.g., "/models/x-ai/grok-code-fast-1" → "x-ai/grok-code-fast-1")
-      - Log: "Found model: {slug} for query: {name}"
+    <substep>1f. If provider mismatch for all results:
+      - Log warning: "Provider mismatch: Expected '{expected_provider}', search returned: {found_providers}"
+      - Take screenshot: error-search-{rank}-provider-mismatch.png
+      - Skip to next model
+      - Continue (don't fail entire process)
     </substep>
 
-    <substep>1g. Navigate to model detail page: https://openrouter.ai/models/{slug}</substep>
+    <substep>1g. If search results found and validated:
+      - Extract result's href attribute
+      - Parse slug from href (e.g., "/models/x-ai/grok-code-fast-1" → "x-ai/grok-code-fast-1")
+      - Log: "Found model: {slug} for query: {name} (provider: {provider} ✅, confidence: {confidence})"
+    </substep>
 
-    <substep>1h. Wait 2 seconds for model page to load</substep>
+    <substep>1h. Navigate to model detail page: https://openrouter.ai/models/{slug}</substep>
+
+    <substep>1i. Wait 3 seconds for model page to load (UPDATED: was 2s)</substep>
 
     <substep>1i. Use mcp__chrome-devtools__evaluate to execute JavaScript extracting:
       - Input pricing (per 1M tokens)
@@ -456,45 +520,118 @@ Phase 4: File generation ✅
 
 ## New JavaScript Extraction Patterns
 
-### Pattern 1: Search Results Extraction
+### Pattern 1: Search Results Extraction with Provider Validation (UPDATED)
+
+**CRITICAL FIX:** Add provider validation to disambiguate multiple search results with similar names.
 
 ```javascript
 /**
- * Extract first search result from OpenRouter search page
+ * Extract search result from OpenRouter search page with provider validation
  * Executes via: mcp__chrome-devtools__evaluate
  *
  * URL: https://openrouter.ai/models?q={model_name}
+ *
+ * @param expectedName - Model name from rankings (e.g., "Grok Code Fast 1")
+ * @param expectedProvider - Provider from Phase 2 extraction (e.g., "x-ai")
+ * @param fuzzyMatchThreshold - Minimum confidence for name matching (default: 0.6)
  */
-(function() {
-  // Wait for search results to render
+(function(expectedName, expectedProvider, fuzzyMatchThreshold = 0.6) {
+  // Fuzzy match helper function
+  const fuzzyMatch = (expected, found) => {
+    const normalize = (str) => str.toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .replace(/\s+/g, '');
+
+    const expectedNorm = normalize(expected);
+    const foundNorm = normalize(found);
+
+    if (expectedNorm === foundNorm) {
+      return { match: true, confidence: 1.0, reason: "exact" };
+    }
+
+    if (expectedNorm.includes(foundNorm) || foundNorm.includes(expectedNorm)) {
+      return { match: true, confidence: 0.8, reason: "partial" };
+    }
+
+    return { match: false, confidence: 0.0, reason: "mismatch" };
+  };
+
+  // Get all search results
   const searchResults = document.querySelectorAll('a[href*="/models/"]');
 
   if (searchResults.length === 0) {
     return {
       found: false,
-      error: "No search results found"
+      error: "No search results found",
+      totalResults: 0
     };
   }
 
-  // Get first result (most relevant)
-  const firstResult = searchResults[0];
-  const href = firstResult.getAttribute('href');
+  // CRITICAL: Iterate through results and validate BOTH provider AND name
+  const foundProviders = [];
 
-  // Extract slug from href
-  // Example: "/models/x-ai/grok-code-fast-1" -> "x-ai/grok-code-fast-1"
-  const slug = href.replace(/^\/models\//, '').split('?')[0];
+  for (const result of searchResults) {
+    const href = result.getAttribute('href');
+    const slug = href.replace(/^\/models\//, '').split('?')[0];
+    const displayName = result.textContent.trim();
 
-  // Extract display name from link text
-  const displayName = firstResult.textContent.trim();
+    // Step 1: Extract provider from slug
+    const provider = slug.split('/')[0];
+    foundProviders.push(provider);
 
+    // Step 2: Provider MUST match first (critical for disambiguation)
+    if (provider !== expectedProvider) {
+      continue; // Skip this result, check next
+    }
+
+    // Step 3: Provider matches! Now check name with fuzzy matching
+    const match = fuzzyMatch(expectedName, displayName);
+
+    if (match.confidence >= fuzzyMatchThreshold) {
+      // SUCCESS: Both provider and name match
+      return {
+        found: true,
+        slug: slug,
+        displayName: displayName,
+        provider: provider,
+        confidence: match.confidence,
+        matchReason: match.reason,
+        href: href,
+        totalResults: searchResults.length
+      };
+    }
+  }
+
+  // If we get here, no result matched both provider AND name
   return {
-    found: true,
-    slug: slug,
-    displayName: displayName,
-    href: href,
+    found: false,
+    error: "Provider mismatch or name mismatch",
+    expectedProvider: expectedProvider,
+    foundProviders: [...new Set(foundProviders)], // Unique providers found
     totalResults: searchResults.length
   };
-})();
+})('Grok Code Fast 1', 'x-ai', 0.6);
+```
+
+**Disambiguation Example:**
+
+```javascript
+// Search for "Claude Opus" with expected provider "anthropic"
+// Returns 3 results:
+//   1. anthropic/claude-opus-4 (newest)
+//   2. anthropic/claude-opus-3.5 (older)
+//   3. some-provider/claude-opus-clone (different provider)
+
+// OLD APPROACH (BROKEN):
+// Takes first result regardless of provider
+// Result: Might get wrong version or wrong provider
+
+// NEW APPROACH (FIXED):
+// Step 1: Check Result 1 provider → "anthropic" ✅ matches expected
+// Step 2: Check Result 1 name → "Claude Opus 4" fuzzy matches "Claude Opus" ✅
+// Step 3: Return Result 1 (correct!)
+//
+// Result 2 and 3 are never checked because Result 1 already matched
 ```
 
 **Usage Example:**
@@ -576,6 +713,8 @@ if (searchResult.found) {
 
 ## Error Recovery Strategies
 
+**COMPLETE ENUMERATION:** The design includes 7 comprehensive error recovery strategies to handle all failure scenarios gracefully.
+
 ### Strategy 1: Search Returns No Results
 
 **Scenario:** Model name from rankings doesn't match any search results
@@ -594,29 +733,58 @@ if (searchResult.found) {
 ✅ Continuing with remaining 8 models...
 ```
 
-### Strategy 2: Search Returns Wrong Model
+### Strategy 2: Provider Mismatch (NEW!)
 
-**Scenario:** Search result doesn't match expected name (fuzzy match fails)
+**Scenario:** Search returns results but none match the expected provider from Phase 2
 
 **Recovery:**
-1. Calculate match confidence using fuzzy matching
-2. If confidence < 0.6, consider it a mismatch
-3. Log warning: `"Search mismatch: Expected '{expected}', found '{found}' (confidence: {conf})"`
-4. Take screenshot for manual review
+1. Validate provider field from slug BEFORE fuzzy matching
+2. If no results match expected provider, consider it a provider mismatch
+3. Log warning: `"Provider mismatch: Expected '{expected}', found '{found_providers}' (confidence: {conf})"`
+4. Take screenshot: `/tmp/scraper-debug/error-search-{rank}-provider-mismatch.png`
 5. **Skip this model** and continue
 6. Report mismatch in final summary
 
 **Example:**
 ```
-⚠️ Search mismatch for rank 3:
-   Expected: "MiniMax M2"
-   Found: "MiniMax M1 Pro"
-   Confidence: 0.4 (below 0.6 threshold)
-📸 Screenshot: /tmp/scraper-debug/error-search-3-mismatch.png
+⚠️ Provider mismatch for rank 3:
+   Expected provider: "x-ai"
+   Found providers: ["anthropic", "openai", "google"]
+   Model name: "Grok Code Fast 1"
+📸 Screenshot: /tmp/scraper-debug/error-search-3-provider-mismatch.png
 ✅ Skipping and continuing with next model...
 ```
 
-### Strategy 3: Model Detail Page Missing Data
+**Why This Strategy is Critical:**
+- Handles multiple models with similar names from different providers
+- Example: Search for "Claude Opus" returns anthropic/claude-opus-4, openai/gpt-4-opus, etc.
+- Without provider validation, might select wrong provider's model
+
+### Strategy 3: Search Returns Wrong Model (Name Mismatch)
+
+**Scenario:** Provider matches but name doesn't (fuzzy match fails)
+
+**Recovery:**
+1. Provider validation passes
+2. Calculate match confidence using fuzzy matching
+3. If confidence < threshold (default 0.6), consider it a name mismatch
+4. Log warning: `"Name mismatch: Expected '{expected}', found '{found}' (confidence: {conf})"`
+5. Take screenshot for manual review
+6. **Skip this model** and continue
+7. Report mismatch in final summary
+
+**Example:**
+```
+⚠️ Name mismatch for rank 3:
+   Expected: "MiniMax M2"
+   Found: "MiniMax M1 Pro"
+   Provider: "minimax" ✅ (matches)
+   Confidence: 0.4 (below 0.6 threshold)
+📸 Screenshot: /tmp/scraper-debug/error-search-3-name-mismatch.png
+✅ Skipping and continuing with next model...
+```
+
+### Strategy 4: Model Detail Page Missing Data
 
 **Scenario:** Search succeeds, but model page missing pricing/context
 
@@ -635,7 +803,7 @@ if (searchResult.found) {
 ✅ Skipping and continuing with next model...
 ```
 
-### Strategy 4: Network/Navigation Failures
+### Strategy 5: Network/Navigation Failures
 
 **Scenario:** Navigation to search or model page fails
 
@@ -652,7 +820,7 @@ if (searchResult.found) {
 ✅ Navigation succeeded on retry
 ```
 
-### Strategy 5: Partial Success (7-8 Models)
+### Strategy 6: Partial Success (7-8 Models)
 
 **Scenario:** Only 7-8 out of 9 models extracted successfully
 
@@ -683,7 +851,7 @@ if (searchResult.found) {
 File is usable with 7 models. Manually verify failed models if desired.
 ```
 
-### Strategy 6: Critical Failure (<7 Models)
+### Strategy 7: Critical Failure (<6 Non-Anthropic Models)
 
 **Scenario:** Fewer than 7 models extracted successfully
 
@@ -722,23 +890,22 @@ OpenRouter rankings page may have changed structure.
 Manual inspection required at: https://openrouter.ai/rankings
 ```
 
-### Strategy 7: Search Page Timeout
+### Summary of All 7 Error Recovery Strategies
 
-**Scenario:** Search page doesn't load/render within timeout
+| # | Strategy | Trigger | Action | Continue? |
+|---|----------|---------|--------|-----------|
+| 1 | **Search No Results** | No search results found | Log + screenshot + skip model | ✅ Yes |
+| 2 | **Provider Mismatch** | No results match expected provider | Log + screenshot + skip model | ✅ Yes |
+| 3 | **Name Mismatch** | Provider matches but name fuzzy match fails | Log + screenshot + skip model | ✅ Yes |
+| 4 | **Missing Data** | Detail page missing pricing/context | Log + screenshot + skip model | ✅ Yes |
+| 5 | **Navigation Failure** | Network/page load fails | Retry once, then skip if fails again | ✅ Yes |
+| 6 | **Partial Success** | 6-8 models extracted (meets minimum) | Proceed with warnings | ✅ Yes (generate file) |
+| 7 | **Critical Failure** | <6 non-Anthropic models extracted | STOP, don't generate file | ❌ No |
 
-**Recovery:**
-1. Wait initial 2s for page load
-2. Check if search results rendered
-3. If not, wait additional 1s and retry (total 3s)
-4. If still not rendered, log error and skip model
-5. Continue with next model
-
-**Example:**
-```
-⏱️ Search page timeout for "Model Name" (3s)
-📸 Screenshot: /tmp/scraper-debug/error-search-timeout-3.png
-⚠️ Skipping model and continuing...
-```
+**Key Insight:**
+- Strategies 1-5: Handle individual model failures gracefully (skip and continue)
+- Strategy 6: Handle acceptable partial success (7-8 models is enough)
+- Strategy 7: Handle unacceptable failure (<6 models, abort mission)
 
 ---
 
@@ -812,6 +979,48 @@ for (const modelName of modelNames) {
 ---
 
 ## Updated Knowledge Section
+
+### Add Provider Field Extraction Explanation
+
+**NEW CATEGORY:** Add to `<knowledge>` section in model-scraper agent:
+
+```xml
+<category name="Provider Field Extraction Reliability">
+  **Why provider extraction from slug is reliable:**
+
+  **Background:**
+  - OpenRouter uses standardized slug format: `provider/model-name`
+  - Example slugs: `x-ai/grok-code-fast-1`, `anthropic/claude-sonnet-4.5`, `google/gemini-2.5-flash`
+  - This format is part of OpenRouter's URL structure (core feature)
+
+  **Extraction Method:**
+  1. Extract slug from ranking card link href
+  2. Parse slug: `href.split('/models/')[1].split('?')[0]`
+  3. Extract provider: `slug.split('/')[0]` (first part before "/")
+
+  **Why This is Reliable:**
+  - ✅ Slug format is standardized across all models
+  - ✅ Format is part of OpenRouter's core URL structure (won't change)
+  - ✅ No separate DOM search needed (provider comes from slug)
+  - ✅ Same reliability as slug extraction itself
+
+  **Comparison: Link Extraction vs Provider Extraction**
+
+  | Aspect | Link Extraction (OLD) | Provider Extraction (NEW) |
+  |--------|----------------------|---------------------------|
+  | **Method** | `querySelectorAll('a[href*="/models/"]')` gets ALL links | Extract from slug within ranking card |
+  | **Reliability** | ❌ Low (gets sidebar, nav links) | ✅ High (standardized format) |
+  | **Problem** | Returns wrong links in wrong order | No problem - slug format guaranteed |
+  | **Stability** | Breaks on UI changes | Stable - URL structure won't change |
+
+  **Key Insight:**
+  - Provider extraction is NOT the same as link extraction
+  - Link extraction: Unreliable (DOM structure changes, many links on page)
+  - Provider extraction: Reliable (comes from slug, which is standardized)
+</category>
+```
+
+### Add Search-Based Extraction Pattern
 
 Add new scraping pattern to `<knowledge><scraping_patterns>`:
 

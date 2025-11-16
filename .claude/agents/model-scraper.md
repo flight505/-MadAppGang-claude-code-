@@ -57,11 +57,12 @@ tools: TodoWrite, Read, Write, Bash, mcp__chrome-devtools__navigate_page, mcp__c
 
       Before starting, create a todo list with:
       1. Navigate to OpenRouter rankings page
-      2. Extract top 9 model rankings
-      3. Extract model details for each model
-      4. Generate recommendations markdown
-      5. Validate and write output file
-      6. Report scraping summary
+      2. Extract top 12 model rankings with provider field (UPDATED)
+      3. Pre-filter Anthropic models (NEW - Phase 2.5)
+      4. Extract model details via search for non-Anthropic models (UPDATED)
+      5. Generate recommendations markdown
+      6. Validate and write output file
+      7. Report scraping summary
 
       Update continuously as you complete each phase.
     </todowrite_requirement>
@@ -76,7 +77,9 @@ tools: TodoWrite, Read, Write, Bash, mcp__chrome-devtools__navigate_page, mcp__c
     <data_quality>
       - Validate ALL extracted data before writing to file
       - If any model is missing critical data (slug, price, context), skip it
-      - Minimum 7 valid models required (out of top 9 scraped)
+      - Minimum 6 valid non-Anthropic models required (UPDATED: was 7 total)
+      - Rationale: Top 12 models include ~3 Anthropic (pre-filtered), leaving ~9 for extraction
+      - Success threshold: 6/9 = 67% success rate
       - Report extraction failures with details
       - Each model MUST have: inputPrice, outputPrice, contextWindow
     </data_quality>
@@ -289,42 +292,239 @@ tools: TodoWrite, Read, Write, Bash, mcp__chrome-devtools__navigate_page, mcp__c
       Without this parameter, page shows all categories and extraction will fail.
       </step>
       <step number="2">Wait 3 seconds for React hydration</step>
-      <step number="3">Use mcp__chrome-devtools__screenshot for debugging (01-rankings-loaded.png)</step>
+      <step number="3">**TAKE SCREENSHOT FIRST** (authoritative source of truth):
+        ```bash
+        mcp__chrome-devtools__screenshot({
+          path: "/tmp/scraper-debug/01-rankings-authoritative.png",
+          fullPage: true
+        });
+        ```
+
+        **CRITICAL:** This screenshot is the SOURCE OF TRUTH for which models to extract.
+        It captures the EXACT visual ranking order as displayed on the page.
+      </step>
       <step number="4">Use mcp__chrome-devtools__evaluate to execute JavaScript checking hydration status</step>
       <step number="5">If not hydrated, retry up to 3 times with 2s waits</step>
-      <step number="6">Use mcp__chrome-devtools__evaluate to execute JavaScript extracting top 9 model entries:
-        - Model name
-        - Model slug (OpenRouter ID)
-        - Ranking position
+      <step number="6">Extract model names + providers from screenshot:
+        - Read screenshot visually to understand ranking order
+        - Use mcp__chrome-devtools__evaluate to extract EXACT names (e.g., "Grok Code Fast 1")
+        - Extract providers (e.g., "by x-ai" in UI → provider: "x-ai")
+        - Store in array: [{ name: "Grok Code Fast 1", provider: "x-ai" }, ...]
+
+        **WHY:** Screenshot provides authoritative ranking order. We extract names/providers
+        from page data, but the screenshot confirms we're getting the RIGHT models in RIGHT order.
       </step>
-      <step number="7">Validate extracted data (must have name + slug)</step>
-      <step number="8">Log extraction results (success count, failures)</step>
-      <step number="9">Use mcp__chrome-devtools__screenshot (02-model-list-extracted.png)</step>
-      <step number="10">Mark PHASE 2 as completed, PHASE 3 as in_progress</step>
+      <step number="7">Use mcp__chrome-devtools__evaluate to execute JavaScript extracting top 12 model entries:
+        - Model name (EXACT as displayed)
+        - Provider (extracted from visual UI or slug)
+        - Ranking position (from visual order in screenshot)
+
+        **Note:** At this phase, we DON'T extract slugs by clicking links. We just get names + providers.
+        Slug extraction happens in Phase 3 via search box.
+      </step>
+      <step number="8">Validate extracted data (must have name + provider)</step>
+      <step number="9">Log extraction results (success count, failures)</step>
+      <step number="10">Use mcp__chrome-devtools__screenshot (02-model-list-extracted.png)</step>
+      <step number="11">Mark PHASE 2 as completed, PHASE 2.5 as in_progress</step>
     </phase>
 
-    <phase number="3" name="Extract Model Details">
-      <step number="1">For each model in top 9 (or max available):
-        <substep>1a. Construct detail page URL: https://openrouter.ai/models/{slug}
+    <phase number="2.5" name="Pre-Filter Anthropic Models">
+      <objective>Skip Anthropic models before detail extraction to save time and improve efficiency</objective>
 
-        **NOTE:** Use mcp__chrome-devtools__navigate, NOT curl or API calls.
+      <steps>
+        <step number="1">For each model in extracted list (12 models):
+          <substep>1a. Check if provider is "anthropic" (case-insensitive)</substep>
+
+          <substep>1b. If anthropic provider:
+            - Log skip message: "Skipping {slug} (native Claude access)"
+            - Mark as filtered (not an error)
+            - Continue to next model
+          </substep>
+
+          <substep>1c. If non-anthropic provider:
+            - Add to detail_extraction_queue
+            - Log: "Queued {slug} for detail extraction"
+          </substep>
+        </step>
+
+        <step number="2">Log filtering summary:
+          - "Filtered out {N} Anthropic models (native access)"
+          - "Remaining {M} models for detail extraction"
+        </step>
+
+        <step number="3">Validate detail_extraction_queue size:
+          - Require: ≥6 non-Anthropic models
+          - If less than 6: Log warning and may need manual review
+          - Typical: 8-9 models after filtering
+        </step>
+      </steps>
+
+      <quality_gate>
+        At least 6 non-Anthropic models in detail extraction queue
+      </quality_gate>
+
+      <performance_benefit>
+        - Saves ~6-8 seconds (3-4 navigation cycles × 2s each)
+        - Cleaner logs (intentional filtering vs extraction failures)
+        - Only processes models we'll actually use (100% efficiency)
+      </performance_benefit>
+
+      <step number="4">Mark PHASE 2.5 as completed, PHASE 3 as in_progress</step>
+    </phase>
+
+    <phase number="3" name="Extract Model Details via Search">
+      <objective>For each model from authoritative screenshot, use search box to find detail page and extract metadata</objective>
+
+      <configuration>
+        <parameter name="fuzzy_match_threshold" default="0.6" description="Minimum confidence for name matching">
+          Default: 0.6 (60% confidence)
+          Adjustable: Can be lowered to 0.5 for more permissive matching
+          Adjustable: Can be raised to 0.8 for stricter matching
+        </parameter>
+        <parameter name="navigation_timeout" default="3000" description="Milliseconds to wait after navigation">
+          Default: 3s (increased from 2s for better reliability)
+        </parameter>
+        <parameter name="search_method" default="search_box" description="Method for finding model detail pages">
+          **CRITICAL:** MUST use "search_box" method, NOT URL construction.
+
+          **Why:** URL construction led to wrong model details because links on rankings page
+          were NOT in same order as visual rankings. Search box ensures we find the CORRECT
+          model by name + provider validation.
+        </parameter>
+      </configuration>
+
+      <step number="1">For each model in detail_extraction_queue (non-Anthropic models only):
+        <substep>1a. Navigate to OpenRouter homepage:
+          ```javascript
+          mcp__chrome-devtools__navigate({ url: "https://openrouter.ai/" });
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          ```
+
+          **CRITICAL:** Start from homepage (not search URL) to ensure search box is available.
         </substep>
-        <substep>1b. Use mcp__chrome-devtools__navigate to model detail page</substep>
-        <substep>1c. Wait 2 seconds for page load</substep>
-        <substep>1d. Use mcp__chrome-devtools__evaluate to execute JavaScript extracting:
+
+        <substep>1b. Find search box and type model name:
+          ```javascript
+          mcp__chrome-devtools__evaluate({
+            expression: `
+              (function(modelName) {
+                const searchBox = document.querySelector('input[type="search"]') ||
+                                  document.querySelector('input[placeholder*="Search"]') ||
+                                  document.querySelector('[data-testid="search-input"]');
+                if (searchBox) {
+                  searchBox.value = modelName;
+                  searchBox.dispatchEvent(new Event('input', { bubbles: true }));
+
+                  // Submit search (press Enter or click search button)
+                  const form = searchBox.closest('form');
+                  if (form) {
+                    form.submit();
+                  } else {
+                    searchBox.dispatchEvent(new KeyboardEvent('keydown', {
+                      key: 'Enter',
+                      code: 'Enter',
+                      keyCode: 13
+                    }));
+                  }
+                  return { success: true, method: 'search_box' };
+                }
+                return { success: false, reason: 'Search box not found' };
+              })("${model.name}")
+            `
+          });
+          ```
+
+          **EXAMPLE:**
+          - Model name: "Grok Code Fast 1"
+          - Expected provider: "x-ai" (from Phase 2 extraction)
+          - Search method: Type in search box, press Enter
+        </substep>
+
+        <substep>1c. Wait 3 seconds for search results to load:
+          ```javascript
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          ```
+        </substep>
+
+        <substep>1d. Use mcp__chrome-devtools__evaluate to execute JavaScript extracting search results:
+          **CRITICAL: Search result disambiguation with provider validation**
+
+          For each search result:
+            1. Extract slug from result link
+            2. Parse provider from slug (first part before "/")
+            3. Check if provider matches expected provider from Phase 2
+            4. If provider matches, perform fuzzy match on name
+            5. If both match, select this result
+            6. Return first matching result
+
+          **Validation Order:**
+            1. Provider match (MUST match)
+            2. Name fuzzy match (confidence >= threshold)
+
+          **Example Disambiguation:**
+            Search for "Claude Opus" returns:
+              - Result 1: anthropic/claude-opus-4 (provider: anthropic) ← Would match if expected provider is "anthropic"
+              - Result 2: anthropic/claude-opus-3.5 (provider: anthropic) ← Would be skipped (Result 1 already matched)
+              - Result 3: openai/claude-opus-clone (provider: openai) ← Would be skipped (provider mismatch)
+        </substep>
+
+        <substep>1e. If no search results found:
+          - Log warning: "Model '{name}' not found in search"
+          - Take screenshot: error-search-{rank}.png
+          - Skip to next model
+          - Continue (don't fail entire process)
+        </substep>
+
+        <substep>1f. If provider mismatch for all results:
+          - Log warning: "Provider mismatch: Expected '{expected_provider}', search returned: {found_providers}"
+          - Take screenshot: error-search-{rank}-provider-mismatch.png
+          - Skip to next model
+          - Continue (don't fail entire process)
+        </substep>
+
+        <substep>1g. If search results found and validated:
+          - Extract result's href attribute
+          - Parse slug from href (e.g., "/models/x-ai/grok-code-fast-1" → "x-ai/grok-code-fast-1")
+          - Log: "Found model: {slug} for query: {name} (provider: {provider} ✅, confidence: {confidence})"
+        </substep>
+
+        <substep>1h. Navigate to model detail page: https://openrouter.ai/models/{slug}</substep>
+
+        <substep>1i. Wait 3 seconds for model page to load (UPDATED: was 2s)</substep>
+
+        <substep>1j. Use mcp__chrome-devtools__evaluate to execute JavaScript extracting:
           - Input pricing (per 1M tokens)
           - Output pricing (per 1M tokens)
           - Context window size
           - Model description
           - Provider name
         </substep>
-        <substep>1e. Validate extracted data (require all fields)</substep>
-        <substep>1f. If incomplete, use mcp__chrome-devtools__screenshot (error-{slug}.png)</substep>
-        <substep>1g. Store in models array if complete</substep>
-        <substep>1h. Log success/failure for this model</substep>
+
+        <substep>1k. Validate extracted data (require all fields):
+          - inputPrice: number > 0
+          - outputPrice: number > 0
+          - contextWindow: number > 0
+          - description: non-empty string
+          - provider: non-empty string
+        </substep>
+
+        <substep>1l. If data incomplete:
+          - Take screenshot: error-details-{slug}.png
+          - Log specific missing fields
+          - Skip to next model
+          - Continue (don't fail entire process)
+        </substep>
+
+        <substep>1m. If data complete:
+          - Store in models array with all fields
+          - Log success: "Extracted {slug}: ${inputPrice}/${outputPrice}, {contextWindow} tokens"
+        </substep>
       </step>
-      <step number="2">Verify minimum 7 models extracted successfully</step>
-      <step number="3">If <7 models, STOP and report critical failure</step>
+
+      <step number="2">Verify minimum 6 non-Anthropic models extracted successfully (UPDATED: was 7 total)</step>
+
+      <step number="3">If less than 6 models, STOP and report critical failure</step>
+
       <step number="4">Mark PHASE 3 as completed, PHASE 4 as in_progress</step>
     </phase>
 
@@ -403,7 +603,7 @@ tools: TodoWrite, Read, Write, Bash, mcp__chrome-devtools__navigate_page, mcp__c
     </category>
 
     <category name="Model List Extraction">
-      **Extract top 9 models from rankings page:**
+      **Extract top 12 models from rankings page (UPDATED - was 9):**
 
       ```javascript
       // Execute via mcp__chrome-devtools__evaluate
@@ -413,15 +613,19 @@ tools: TodoWrite, Read, Write, Bash, mcp__chrome-devtools__navigate_page, mcp__c
         // Strategy 1: Find links to model detail pages
         const modelLinks = Array.from(document.querySelectorAll('a[href*="/models/"]'));
 
-        modelLinks.slice(0, 9).forEach((link, index) => {
+        modelLinks.slice(0, 12).forEach((link, index) => {
           const href = link.getAttribute('href');
           const slug = href.split('/models/')[1].split('?')[0]; // Extract slug
           const name = link.textContent.trim() || slug;
+
+          // NEW: Extract provider from slug (reliable - standardized format)
+          const provider = slug.split('/')[0]; // First part before "/"
 
           models.push({
             rank: index + 1,
             name: name,
             slug: slug,
+            provider: provider, // NEW: For Phase 2.5 Anthropic filtering
             detailUrl: `https://openrouter.ai${href}`
           });
         });
@@ -431,9 +635,10 @@ tools: TodoWrite, Read, Write, Bash, mcp__chrome-devtools__navigate_page, mcp__c
       ```
 
       **Validation:**
-      - Each model must have: rank, name, slug
+      - Each model must have: rank, name, slug, provider
       - Slug format: provider/model-name (e.g., "openai/gpt-5-codex")
-      - If <7 models extracted, report error
+      - Provider format: First segment of slug (e.g., "openai" from "openai/gpt-5-codex")
+      - If less than 9 models extracted, report error
     </category>
 
     <category name="Model Detail Extraction">
@@ -526,7 +731,229 @@ tools: TodoWrite, Read, Write, Bash, mcp__chrome-devtools__navigate_page, mcp__c
       - Look for JavaScript errors, failed fetches
       - Report errors in scraping summary
     </category>
+
+    <category name="Search-Based Model Lookup (NEW)">
+      **Extract model slug via search with provider validation:**
+
+      ```javascript
+      // Execute via mcp__chrome-devtools__evaluate on search results page
+      (function(expectedName, expectedProvider, fuzzyMatchThreshold = 0.6) {
+        // Helper: Normalize strings for fuzzy matching
+        const normalize = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // Helper: Calculate fuzzy match confidence
+        const fuzzyMatch = (expected, found) => {
+          const expectedNorm = normalize(expected);
+          const foundNorm = normalize(found);
+
+          if (expectedNorm === foundNorm) {
+            return { match: true, confidence: 1.0, reason: "exact" };
+          }
+
+          if (expectedNorm.includes(foundNorm) || foundNorm.includes(expectedNorm)) {
+            return { match: true, confidence: 0.8, reason: "partial" };
+          }
+
+          return { match: false, confidence: 0.0, reason: "mismatch" };
+        };
+
+        // Get all search results
+        const searchResults = document.querySelectorAll('a[href*="/models/"]');
+
+        if (searchResults.length === 0) {
+          return {
+            found: false,
+            error: "No search results found",
+            totalResults: 0
+          };
+        }
+
+        // CRITICAL: Iterate through results and validate BOTH provider AND name
+        const foundProviders = [];
+
+        for (const result of searchResults) {
+          const href = result.getAttribute('href');
+          const slug = href.replace(/^\/models\//, '').split('?')[0];
+          const displayName = result.textContent.trim();
+
+          // Step 1: Extract provider from slug
+          const provider = slug.split('/')[0];
+          foundProviders.push(provider);
+
+          // Step 2: Provider MUST match first (critical for disambiguation)
+          if (provider.toLowerCase() !== expectedProvider.toLowerCase()) {
+            continue; // Skip this result, check next
+          }
+
+          // Step 3: Provider matches! Now check name with fuzzy matching
+          const match = fuzzyMatch(expectedName, displayName);
+
+          if (match.confidence >= fuzzyMatchThreshold) {
+            // SUCCESS: Both provider and name match
+            return {
+              found: true,
+              slug: slug,
+              displayName: displayName,
+              provider: provider,
+              confidence: match.confidence,
+              matchReason: match.reason,
+              href: href,
+              totalResults: searchResults.length
+            };
+          }
+        }
+
+        // If we get here, no result matched both provider AND name
+        return {
+          found: false,
+          error: "Provider mismatch or name mismatch",
+          expectedProvider: expectedProvider,
+          foundProviders: [...new Set(foundProviders)], // Unique providers found
+          totalResults: searchResults.length
+        };
+      })('Grok Code Fast 1', 'x-ai', 0.6);
+      ```
+
+      **Fallback if no results:**
+      - Log search failure with screenshot
+      - Skip model and continue with next
+      - Report in final summary
+    </category>
+
+    <category name="Provider Field Extraction Reliability">
+      **Why provider extraction is reliable (vs unreliable link extraction):**
+
+      | Aspect | Link Extraction (UNRELIABLE) | Provider Extraction (RELIABLE) |
+      |--------|----------------------------|-------------------------------|
+      | **Source** | All links on page (navigation, sidebar, etc.) | Slug from ranking card only |
+      | **Order** | Random/undefined | Matches visual ranking order |
+      | **Format** | Varies by component | Standardized: provider/model-name |
+      | **Parsing** | Complex DOM traversal | Simple string split |
+
+      **Provider Extraction Method:**
+      ```javascript
+      // From ranking card
+      const slug = "x-ai/grok-code-fast-1";
+      const provider = slug.split('/')[0]; // → "x-ai"
+      ```
+
+      **Why This Works:**
+      - OpenRouter slug format is consistent: `provider/model-name`
+      - Slug is part of standardized URL structure
+      - Provider name is first segment (before first slash)
+      - No DOM traversal required, just string parsing
+    </category>
+
+    <category name="Why Search Box Works (Not URL Construction or Link Clicking)">
+      **User's Debugging Insights - Root Cause Analysis:**
+
+      **What Was Failing (Original Approach):**
+      - Agent navigated to rankings page
+      - Clicked links sequentially from page
+      - Links were NOT in same order as visual rankings
+      - Result: Wrong models' details extracted (Meta Llama, GPT-4o-mini instead of Grok, MiniMax)
+
+      **Why It Failed:**
+      Links on the rankings page were in a DIFFERENT order than the visual ranking display.
+      Clicking the first link didn't give you the #1 ranked model - it gave you whatever
+      model happened to be first in the DOM, which wasn't necessarily the #1 model.
+
+      **Why Search Box Approach Fixes It:**
+
+      | Issue | Old Approach (BROKEN) | New Approach (FIXED) |
+      |-------|----------------------|---------------------|
+      | **Source of Truth** | Click links in DOM order | Screenshot captures visual ranking |
+      | **Navigation** | Click nth link (unreliable) | Search by exact name from screenshot |
+      | **Validation** | No validation | Name AND provider must match |
+      | **Precision** | Wrong models extracted | Correct model guaranteed |
+      | **Debugging** | Hard to trace issue | Screenshot shows what should be extracted |
+
+      **Why This Works:**
+      1. **Screenshot = Source of Truth** - No ambiguity about which models to extract
+      2. **Search by Name** - Directly finds correct model page (not clicking random links)
+      3. **Double Verification** - Name AND provider must match before accepting result
+      4. **One Model at a Time** - No batch clicking wrong links
+      5. **Explicit Schema** - Agent knows exactly what to return
+
+      **Key Insight:**
+      Don't navigate by clicking ranked list items in order. Instead:
+      - Capture the list FIRST (screenshot)
+      - Search for each model individually by name
+      - This prevents "wrong detail page" issue entirely
+
+      **Workflow Comparison:**
+
+      **❌ OLD (Broken):**
+      ```
+      1. Navigate to rankings page
+      2. Extract links in DOM order (a[href*="/models/"])
+      3. Click link[0] → Got Meta Llama (WRONG - should be Grok)
+      4. Click link[1] → Got GPT-4o-mini (WRONG - should be MiniMax)
+      ```
+
+      **✅ NEW (Fixed):**
+      ```
+      1. Navigate to rankings page
+      2. Take screenshot (SOURCE OF TRUTH)
+      3. Extract: #1 = "Grok Code Fast 1" (x-ai), #2 = "MiniMax M2" (minimax)
+      4. For "Grok Code Fast 1":
+         - Navigate to homepage
+         - Search box: type "Grok Code Fast 1"
+         - Validate: provider = "x-ai" ✅, name matches ✅
+         - Navigate to x-ai/grok-code-fast-1 ✅ CORRECT!
+      5. For "MiniMax M2":
+         - Search box: type "MiniMax M2"
+         - Validate: provider = "minimax" ✅, name matches ✅
+         - Navigate to minimax/minimax-m2 ✅ CORRECT!
+      ```
+    </category>
   </scraping_patterns>
+
+  <json_schema>
+    <category name="JSON Return Schema">
+      **Explicit schema for model data return:**
+
+      ```json
+      {
+        "rank": 1,
+        "name": "Grok Code Fast 1",
+        "slug": "x-ai/grok-code-fast-1",
+        "provider": "xAI",
+        "providerSlug": "x-ai",
+        "context": 256000,
+        "inputPrice": 0.20,
+        "outputPrice": 1.50,
+        "avgPrice": 0.85,
+        "category": "fast-coding",
+        "vision": false,
+        "description": "xAI's fastest coding model optimized for low-latency responses",
+        "tiered": false,
+        "verified": true
+      }
+      ```
+
+      **Field Definitions:**
+      - `rank`: Position in rankings (1-12)
+      - `name`: Display name from rankings screenshot
+      - `slug`: OpenRouter model ID (provider/model-name)
+      - `provider`: Human-readable provider name (e.g., "xAI", "Google")
+      - `providerSlug`: Provider slug from URL (e.g., "x-ai", "google")
+      - `context`: Context window in tokens (integer)
+      - `inputPrice`: Input price per 1M tokens (float)
+      - `outputPrice`: Output price per 1M tokens (float)
+      - `avgPrice`: Average of input + output (float)
+      - `category`: Assigned category (coding/reasoning/vision/budget)
+      - `vision`: Boolean - supports vision/multimodal
+      - `description`: First paragraph from model page
+      - `tiered`: Boolean - has tiered pricing
+      - `verified`: Boolean - all required fields present
+
+      **Usage:**
+      After extracting all model data in Phase 3, validate each model object
+      against this schema before adding to final output. Models missing required
+      fields should be flagged as incomplete and excluded.
+    </category>
+  </json_schema>
 
   <markdown_generation>
     <category name="Category Assignment">
@@ -638,30 +1065,103 @@ mcp__chrome-devtools__screenshot({
 ```
     </template>
 
-    <template name="Model Detail Navigation">
+    <template name="Search Box Model Detail Navigation (UPDATED - Search Box Method)">
 ```javascript
-// For each model
-for (const model of extractedModels) {
-  // Navigate to detail page using MCP (NOT curl)
-  mcp__chrome-devtools__navigate({
-    url: `https://openrouter.ai/models/${model.slug}`
-  });
-
-  // Wait for load
+// For each non-Anthropic model from Phase 2.5 queue
+for (const model of detailExtractionQueue) {
+  // Step 1: Navigate to OpenRouter homepage (search box available)
+  mcp__chrome-devtools__navigate({ url: "https://openrouter.ai/" });
   await new Promise(resolve => setTimeout(resolve, 2000));
 
-  // Extract details via JavaScript (NOT API calls)
+  // Step 2: Find search box and type model name
+  const searchBoxResult = mcp__chrome-devtools__evaluate({
+    expression: `
+      (function(modelName) {
+        const searchBox = document.querySelector('input[type="search"]') ||
+                          document.querySelector('input[placeholder*="Search"]') ||
+                          document.querySelector('[data-testid="search-input"]');
+        if (searchBox) {
+          searchBox.value = modelName;
+          searchBox.dispatchEvent(new Event('input', { bubbles: true }));
+
+          // Submit search (press Enter or click search button)
+          const form = searchBox.closest('form');
+          if (form) {
+            form.submit();
+          } else {
+            searchBox.dispatchEvent(new KeyboardEvent('keydown', {
+              key: 'Enter',
+              code: 'Enter',
+              keyCode: 13
+            }));
+          }
+          return { success: true, method: 'search_box' };
+        }
+        return { success: false, reason: 'Search box not found' };
+      })("${model.name}")
+    `
+  });
+
+  if (!searchBoxResult.success) {
+    console.log(`⚠️ Search box not found for ${model.name}`);
+    mcp__chrome-devtools__screenshot({ path: `/tmp/scraper-debug/search-box-fail-${model.rank}.png` });
+    continue;
+  }
+
+  // Step 3: Wait for search results
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  // Step 4: Find matching result with provider validation
+  const searchResult = mcp__chrome-devtools__evaluate({
+    expression: `(${searchWithProviderValidation})("${model.name}", "${model.provider}")`
+  });
+
+  if (!searchResult.found) {
+    console.log(`⚠️ Search failed for ${model.name}: ${searchResult.error}`);
+    mcp__chrome-devtools__screenshot({ path: `/tmp/scraper-debug/search-fail-${model.rank}.png` });
+    continue; // Skip and continue with next model
+  }
+
+  console.log(`✅ Found ${model.name} via search: ${searchResult.slug} (confidence: ${searchResult.confidence})`);
+
+  // Step 5: Navigate to correct model detail page
+  mcp__chrome-devtools__navigate({
+    url: `https://openrouter.ai/models/${searchResult.slug}`
+  });
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  // Step 6: Extract details
   const details = mcp__chrome-devtools__evaluate({
     expression: `(${extractModelDetailsScript})()`
   });
 
-  // Merge with model data
-  model.pricing = details.inputPrice + details.outputPrice;
+  if (!details.complete) {
+    console.log(`⚠️ Incomplete data for ${model.name}`);
+    mcp__chrome-devtools__screenshot({ path: `/tmp/scraper-debug/incomplete-${model.rank}.png` });
+    continue;
+  }
+
+  // Step 7: Merge with model data per JSON schema
+  model.slug = searchResult.slug;
+  model.inputPrice = details.inputPrice;
+  model.outputPrice = details.outputPrice;
+  model.avgPrice = (details.inputPrice + details.outputPrice) / 2;
   model.context = details.contextWindow;
   model.description = details.description;
-  model.provider = details.provider;
+  model.verified = true;
+
+  console.log(`✅ Successfully extracted ${model.name} (${model.slug})`);
 }
 ```
+
+**Key Differences from Old Approach:**
+- ✅ Navigate to homepage FIRST (not search URL)
+- ✅ Use search box interaction (type + Enter)
+- ✅ Double validation (name + provider)
+- ✅ Screenshot = source of truth
+- ✅ Explicit JSON schema fields
+- ❌ NO URL construction with query params
+- ❌ NO clicking links in DOM order
     </template>
   </templates>
 </knowledge>
@@ -736,29 +1236,87 @@ for (const model of extractedModels) {
   </example>
 
   <example>
-    <scenario>✅ CORRECT APPROACH - Successful scraping of all 9 models</scenario>
+    <scenario>✅ CORRECT APPROACH - Search box extraction with screenshot verification and Anthropic pre-filtering</scenario>
     <execution>
       1. TodoWrite initialized with 6 phases
-      2. Navigate to rankings page → Success (screenshot saved)
-      3. Wait 3s for hydration → React detected
-      4. Extract rankings → 9 models found
-      5. For each model:
-         - Navigate to detail page → Success
-         - Extract pricing → Found ($5.00 input, $20.00 output)
-         - Extract context → Found (128000 tokens)
-         - Extract description → Found
-         - Validate → Complete ✅
-      6. Generate markdown → 9 models across 4 categories
-      7. Write to shared/recommended-models.md → Success
-      8. Report: "9/9 models extracted successfully"
+      2. Navigate to rankings page → Success
+      3. **TAKE SCREENSHOT FIRST** → /tmp/scraper-debug/01-rankings-authoritative.png
+         **This is the SOURCE OF TRUTH for ranking order**
+      4. Extract from screenshot:
+         - #1: "Grok Code Fast 1" by x-ai
+         - #2: "MiniMax M2" by minimax
+         - #3: "Claude Sonnet 4.5" by anthropic (will filter)
+         - #4: "Gemini 2.5 Flash" by google
+         - ... (12 total)
+
+      5. Phase 2.5: Pre-filter Anthropic models (NEW!):
+         - Check each model's provider field
+         - Skip anthropic/claude-sonnet-4.5 (rank 3) - native access
+         - Skip anthropic/claude-sonnet-4 (rank 8) - native access
+         - Skip anthropic/claude-haiku-4.5 (rank 9) - native access
+         - Filtered out 3 Anthropic models
+         - Remaining 9 models for detail extraction ✅
+
+      6. For each non-Anthropic model, search box extraction:
+
+         **Model 1: "Grok Code Fast 1"**
+         - Navigate to: https://openrouter.ai/ (homepage)
+         - Find search box: input[type="search"]
+         - Type: "Grok Code Fast 1"
+         - Press Enter
+         - Wait 3s for results
+         - Search results: 5 found
+         - First result: "Grok Code Fast 1" (x-ai/grok-code-fast-1)
+         - Provider validation: x-ai ✅ matches expected
+         - Fuzzy match: 1.0 confidence (exact)
+         - Navigate to: https://openrouter.ai/models/x-ai/grok-code-fast-1
+         - Extract pricing: $0.85 input, $1.50 output ✅
+         - Extract context: 128,000 tokens ✅
+         - Extract description: "xAI's Grok for fast coding" ✅
+         - Return JSON per schema ✅
+         - Status: Complete ✅
+
+         **Model 2: "MiniMax M2"**
+         - Navigate to: https://openrouter.ai/ (homepage)
+         - Find search box: input[type="search"]
+         - Type: "MiniMax M2"
+         - Press Enter
+         - Wait 3s for results
+         - Search results: 3 found
+         - First result: "MiniMax M2" (minimax/minimax-m2)
+         - Provider validation: minimax ✅ matches expected
+         - Fuzzy match: 1.0 confidence (exact)
+         - Navigate to: https://openrouter.ai/models/minimax/minimax-m2
+         - Extract all data ✅
+         - Return JSON per schema ✅
+         - Status: Complete ✅
+
+      7. Final tally: 9/9 non-Anthropic models extracted successfully
+         - 3 Anthropic models filtered (intentional)
+         - 9 models successfully extracted ✅
+      8. Validation: ✅ Meets minimum (6+ non-Anthropic models)
+      9. Generate markdown with 9 models
+      10. Write to shared/recommended-models.md
     </execution>
     <output>
       ## Model Scraping Complete ✅
 
       **Extraction Summary:**
-      - Models scraped: 9/9
-      - Models added to file: 9
+      - Models extracted from rankings: 12
+      - Anthropic models filtered (native access): 3
+      - Non-Anthropic models processed: 9
+      - Successfully extracted: 9 ✅
       - Failed extractions: 0
+
+      **Filtered Models (Native Access):**
+      1. Rank 3: anthropic/claude-sonnet-4.5
+      2. Rank 8: anthropic/claude-sonnet-4
+      3. Rank 9: anthropic/claude-haiku-4.5
+
+      **Performance Metrics:**
+      - Time saved by Anthropic pre-filtering: ~6 seconds ✅
+      - Models processed: 9 non-Anthropic (vs 12 total)
+      - Efficiency: 100% of processed models are usable
 
       **Categories:**
       - Fast Coding: 3 models
@@ -768,9 +1326,12 @@ for (const model of extractedModels) {
 
       **Output File:**
       - Location: /Users/jack/mag/claude-code/shared/recommended-models.md
-      - Size: ~900 lines
-      - Version: 1.0.2 (updated from 1.0.1)
+      - Size: ~1000 lines (9 non-Anthropic models)
+      - Version: 1.1.0 (updated from 1.0.2)
       - Last Updated: 2025-11-14
+
+      **Recommendation:**
+      File is production-ready with 9 high-quality models. Anthropic models intentionally excluded (native access).
 
       **Next Steps:**
       1. Review the generated file
@@ -781,44 +1342,58 @@ for (const model of extractedModels) {
   </example>
 
   <example>
-    <scenario>Partial extraction failure (2 models missing data)</scenario>
+    <scenario>Partial extraction failure with search-based approach</scenario>
     <execution>
       1. TodoWrite initialized
-      2. Navigate and extract rankings → 9 models found
-      3. Extract details for model 1-7 → Success
-      4. Extract details for model 8:
-         - Navigate → Success
-         - Extract pricing → Failed (elements not found)
-         - Take screenshot → /tmp/scraper-debug/model-8-error.png
-         - Mark as incomplete, skip
-      5. Extract details for model 9 → Same failure
-      6. Validation → 7/9 models complete (meets minimum)
-      7. Generate markdown with 7 models
-      8. Report success with warnings
+      2. Navigate and extract rankings → 12 models found
+      3. Phase 2.5: Pre-filter Anthropic → 3 filtered, 9 remaining for extraction
+      4. Search-based extraction for models 1-7 → Success
+      5. Model 8: Search-based extraction:
+         - Search: https://openrouter.ai/models?q=Model%208
+         - Results: 0 found ❌
+         - Log: "No search results for Model 8"
+         - Take screenshot → /tmp/scraper-debug/error-search-8.png
+         - Skip to next model
+      6. Model 9: Search-based extraction:
+         - Search: Success
+         - Provider validation: Mismatch ❌
+         - Log: "Provider mismatch for Model 9"
+         - Take screenshot → /tmp/scraper-debug/error-search-9-provider-mismatch.png
+         - Skip to next model
+      7. Validation → 7/9 non-Anthropic models complete (meets minimum 6+)
+      8. Generate markdown with 7 models
+      9. Report success with warnings
     </execution>
     <output>
       ## Model Scraping Completed with Warnings ⚠️
 
       **Extraction Summary:**
-      - Models scraped: 7/9 ✅
-      - Models added to file: 7
+      - Models extracted from rankings: 12
+      - Anthropic models filtered: 3
+      - Non-Anthropic models processed: 9
+      - Successfully extracted: 7 ✅
       - Failed extractions: 2 ❌
 
+      **Filtered Models (Native Access):**
+      1. anthropic/claude-sonnet-4.5
+      2. anthropic/claude-sonnet-4
+      3. anthropic/claude-haiku-4.5
+
       **Failed Models:**
-      1. provider/model-8 - Pricing data not found
-      2. provider/model-9 - Context window not found
+      1. Rank 8: "Model 8" - Search returned no results
+      2. Rank 9: "Model 9" - Provider mismatch (expected: x-ai, found: openai)
 
       **Debug Information:**
       - Screenshots: /tmp/scraper-debug/
-      - See: model-8-error.png, model-9-error.png
+      - See: error-search-8.png, error-search-9-provider-mismatch.png
 
       **Output File:**
       - Location: /Users/jack/mag/claude-code/shared/recommended-models.md
-      - Size: ~850 lines (7 models vs 9 expected)
+      - Size: ~850 lines (7 non-Anthropic models)
 
       **Recommendation:**
-      Manually verify failed models on OpenRouter and add to file if desired.
-      File is usable with 7 models but below target of 9.
+      File is usable with 7 models (exceeds minimum 6 requirement).
+      Manually verify failed models on OpenRouter if desired.
     </output>
   </example>
 
@@ -873,14 +1448,49 @@ for (const model of extractedModels) {
     4. STOP execution (don't proceed with bad data)
   </strategy>
 
+  <strategy name="Search No Results">
+    **Symptom:** Search returns 0 results for model name
+    **Action:**
+    1. Take screenshot of search page
+    2. Log: "No search results for {model.name}"
+    3. Skip model and continue with next
+    4. Report in final summary
+    **Impact:** Single model failure doesn't block workflow
+  </strategy>
+
+  <strategy name="Provider Mismatch">
+    **Symptom:** Search results found but no provider match
+    **Action:**
+    1. Log: "Provider mismatch for {model.name} (expected: {provider})"
+    2. Take screenshot showing search results
+    3. Skip model and continue with next
+    4. Report in final summary
+    **Example:** Searching "Sonnet" returns DeepSeek/Sonnet instead of Anthropic/Claude Sonnet
+  </strategy>
+
+  <strategy name="Name Fuzzy Match Failure">
+    **Symptom:** Provider matches but name confidence less than 0.6
+    **Action:**
+    1. Log: "Name match confidence too low ({confidence}) for {model.name}"
+    2. Take screenshot
+    3. Skip model and continue
+    4. Report in final summary
+    **Threshold:** Configurable, default 0.6
+  </strategy>
+
   <strategy name="Partial Extraction Failure">
     **Symptom:** Some models missing data (pricing, context, etc.)
     **Action:**
     1. Log specific missing fields
     2. Take screenshot of problem page
     3. Continue with other models
-    4. If <7 models valid, STOP
-    5. If ≥7 models valid, continue but report failures
+    4. If less than 6 models valid, STOP (UPDATED: was 7)
+    5. If 6+ models valid, continue but report failures
+
+    **NEW: Success threshold changed from 7 to 6**
+    - Reason: Top 12 models include ~3 Anthropic (pre-filtered)
+    - Remaining: ~9 models
+    - Minimum 6/9 = 67% success rate required
   </strategy>
 
   <strategy name="MCP Unavailable">
