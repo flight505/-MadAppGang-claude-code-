@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { OpenRouterModel } from "./types.js";
@@ -6,6 +6,25 @@ import type { OpenRouterModel } from "./types.js";
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// User preferences cache
+let _cachedUserModels: UserModelPreferences | null = null;
+
+interface UserModelData {
+	id: string;
+	name: string;
+	description: string;
+	provider: string;
+	category?: string;
+	priority: number;
+	custom: boolean;
+}
+
+interface UserModelPreferences {
+	customModels: UserModelData[];
+	lastUpdated: string;
+	version: string;
+}
 
 interface ModelMetadata {
 	name: string;

@@ -505,6 +505,10 @@ OPTIONS:
   --help-ai                Show AI agent usage guide (file-based patterns, sub-agents)
   --init                   Install Claudish skill in current project (.claude/skills/)
 
+CUSTOM MODELS:
+  Claudish accepts ANY valid OpenRouter model ID, even if not in --list-models
+  Example: claudish --model your_provider/custom-model-123 "task"
+
 MODES:
   • Interactive mode (default): Shows model selector, starts persistent session
   • Single-shot mode: Runs one task in headless mode and exits (requires --model)

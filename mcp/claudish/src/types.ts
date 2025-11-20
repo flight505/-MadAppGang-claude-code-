@@ -30,6 +30,7 @@ export interface ClaudishConfig {
   stdin: boolean; // Read prompt from stdin instead of args
   openrouterApiKey?: string; // Optional in monitor mode
   anthropicApiKey?: string; // Required in monitor mode
+  agent?: string; // Agent to use for execution (e.g., "frontend:developer")
   claudeArgs: string[];
 }
 

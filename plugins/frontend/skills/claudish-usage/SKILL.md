@@ -282,6 +282,54 @@ claudish --list-models
 claudish --list-models --force-update
 ```
 
+## NEW: Direct Agent Selection (v2.1.0)
+
+**Use `--agent` flag to invoke agents directly without the file-based pattern:**
+
+```bash
+# Use specific agent (prepends @agent- automatically)
+claudish --model x-ai/grok-code-fast-1 --agent frontend:developer "implement React component"
+
+# Claude receives: "Use the @agent-frontend:developer agent to: implement React component"
+
+# List available agents in project
+claudish --list-agents
+```
+
+**When to use `--agent` vs file-based pattern:**
+
+**Use `--agent` when:**
+- Single, simple task that needs agent specialization
+- Direct conversation with one agent
+- Testing agent behavior
+- CLI convenience
+
+**Use file-based pattern when:**
+- Complex multi-step workflows
+- Multiple agents needed
+- Large codebases
+- Production tasks requiring review
+- Need isolation from main conversation
+
+**Example comparisons:**
+
+**Simple task (use `--agent`):**
+```bash
+claudish --model x-ai/grok-code-fast-1 --agent frontend:developer "create button component"
+```
+
+**Complex task (use file-based):**
+```typescript
+// multi-phase-workflow.md
+Phase 1: Use api-architect to design API
+Phase 2: Use backend-developer to implement
+Phase 3: Use test-architect to add tests
+Phase 4: Use senior-code-reviewer to review
+
+then:
+claudish --model x-ai/grok-code-fast-1 --stdin < multi-phase-workflow.md
+```
+
 ## Best Practice: File-Based Sub-Agent Pattern
 
 ### ⚠️ CRITICAL: Don't Run Claudish Directly from Main Conversation
@@ -937,6 +985,110 @@ const MODELS = ["x-ai/grok-code-fast-1", "openai/gpt-5"];
 const { stdout } = await Bash("claudish --list-models --json");
 const models = JSON.parse(stdout).models.map(m => m.id);
 ```
+
+### ✅ Do Accept Custom Models From Users
+
+**Problem:** User provides a custom model ID that's not in --list-models
+
+**Wrong (rejecting custom models):**
+```typescript
+const availableModels = ["x-ai/grok-code-fast-1", "openai/gpt-5"];
+const userModel = "custom/provider/model-123";
+
+if (!availableModels.includes(userModel)) {
+  throw new Error("Model not in my shortlist"); // ❌ DON'T DO THIS
+}
+```
+
+**Right (accept any valid model ID):**
+```typescript
+// Claudish accepts ANY valid OpenRouter model ID, even if not in --list-models
+const userModel = "custom/provider/model-123";
+
+// Validate it's a non-empty string with provider format
+if (!userModel.includes("/")) {
+  console.warn("Model should be in format: provider/model-name");
+}
+
+// Use it directly - Claudish will validate with OpenRouter
+await Bash(`claudish --model ${userModel} "task"`);
+```
+
+**Why:** Users may have access to:
+- Beta/experimental models
+- Private/custom fine-tuned models
+- Newly released models not yet in rankings
+- Regional/enterprise models
+- Cost-saving alternatives
+
+**Always accept user-provided model IDs** unless they're clearly invalid (empty, wrong format).
+
+### ✅ Do Handle User-Preferred Models
+
+**Scenario:** User says "use my custom model X" and expects it to be remembered
+
+**Solution 1: Environment Variable (Recommended)**
+```typescript
+// Set for the session
+process.env.CLAUDISH_MODEL = userPreferredModel;
+
+// Or set permanently in user's shell profile
+await Bash(`echo 'export CLAUDISH_MODEL="${userPreferredModel}"' >> ~/.zshrc`);
+```
+
+**Solution 2: Session Cache**
+```typescript
+// Store in a temporary session file
+const sessionFile = "/tmp/claudish-user-preferences.json";
+const prefs = {
+  preferredModel: userPreferredModel,
+  lastUsed: new Date().toISOString()
+};
+await Write({ file_path: sessionFile, content: JSON.stringify(prefs, null, 2) });
+
+// Load in subsequent commands
+const { stdout } = await Read({ file_path: sessionFile });
+const prefs = JSON.parse(stdout);
+const model = prefs.preferredModel || defaultModel;
+```
+
+**Solution 3: Prompt Once, Remember for Session**
+```typescript
+// In a multi-step workflow, ask once
+if (!process.env.CLAUDISH_MODEL) {
+  const { stdout } = await Bash("claudish --list-models --json");
+  const models = JSON.parse(stdout).models;
+
+  const response = await AskUserQuestion({
+    question: "Select model (or enter custom model ID):",
+    options: models.map((m, i) => ({ label: m.name, value: m.id })).concat([
+      { label: "Enter custom model...", value: "custom" }
+    ])
+  });
+
+  if (response === "custom") {
+    const customModel = await AskUserQuestion({
+      question: "Enter OpenRouter model ID (format: provider/model):"
+    });
+    process.env.CLAUDISH_MODEL = customModel;
+  } else {
+    process.env.CLAUDISH_MODEL = response;
+  }
+}
+
+// Use the selected model for all subsequent calls
+const model = process.env.CLAUDISH_MODEL;
+await Bash(`claudish --model ${model} "task 1"`);
+await Bash(`claudish --model ${model} "task 2"`);
+```
+
+**Guidance for Agents:**
+1. ✅ **Accept any model ID** user provides (unless obviously malformed)
+2. ✅ **Don't filter** based on your "shortlist" - let Claudish handle validation
+3. ✅ **Offer to set CLAUDISH_MODEL** environment variable for session persistence
+4. ✅ **Explain** that --list-models shows curated recommendations, not all possibilities
+5. ✅ **Validate format** (should contain "/") but not restrict to known models
+6. ❌ **Never reject** a user's custom model with "not in my shortlist"
 
 ### ❌ Don't Skip Error Handling
 

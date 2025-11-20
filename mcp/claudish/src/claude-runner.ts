@@ -113,8 +113,19 @@ export async function runClaudeWithProxy(
     if (config.jsonOutput) {
       claudeArgs.push("--output-format", "json");
     }
-    // Add user-provided args (including prompt)
-    claudeArgs.push(...config.claudeArgs);
+    // If agent is specified, prepend agent instruction to the prompt
+    if (config.agent && config.claudeArgs.length > 0) {
+      // Prepend agent context to the first argument (the prompt)
+      // This tells Claude Code to use the specified agent for the task
+      // Claude Code agents use @agent- prefix format
+      const modifiedArgs = [...config.claudeArgs];
+      const agentId = config.agent.startsWith("@agent-") ? config.agent : `@agent-${config.agent}`;
+      modifiedArgs[0] = `Use the ${agentId} agent to: ${modifiedArgs[0]}`;
+      claudeArgs.push(...modifiedArgs);
+    } else {
+      // Add user-provided args as-is (including prompt)
+      claudeArgs.push(...config.claudeArgs);
+    }
   }
 
   // Environment variables for Claude Code

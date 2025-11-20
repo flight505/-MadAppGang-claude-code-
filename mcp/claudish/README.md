@@ -19,7 +19,8 @@
 - ✅ **Parallel runs** - Each instance gets isolated proxy
 - ✅ **Autonomous mode** - Bypass all prompts with flags
 - ✅ **Context inheritance** - Runs in current directory with same `.claude` settings
-- ✅ **Multiple models** - 5 prioritized OpenRouter models
+- ✅ **Multiple models** - 10+ prioritized OpenRouter models
+- ✅ **Agent support** - Use Claude Code agents in headless mode with `--agent`
 
 ## Installation
 
@@ -214,7 +215,10 @@ claudish [OPTIONS] <claude-args...>
 | `-d, --debug` | Enable debug logging to file | `false` |
 | `--no-auto-approve` | Disable auto-approve (require prompts) | Auto-approve **enabled** |
 | `--dangerous` | Pass `--dangerouslyDisableSandbox` | `false` |
-| `--list-models` | List available models | - |
+| `--agent <agent>` | Use specific agent (e.g., `frontend:developer`) | - |
+| `--list-models` | List available OpenRouter models | - |
+| `--list-agents` | List available agents in current project | - |
+| `--force-update` | Force refresh model cache | - |
 | `--init` | Install Claudish skill in current project | - |
 | `--help-ai` | Show AI agent usage guide | - |
 | `-h, --help` | Show help message | - |
@@ -262,6 +266,28 @@ List models anytime with:
 ```bash
 claudish --list-models
 ```
+
+## Agent Support (NEW in v2.1.0)
+
+Run specialized agents in headless mode with direct agent selection:
+
+```bash
+# Use frontend developer agent
+claudish --model x-ai/grok-code-fast-1 --agent frontend:developer "create a React button component"
+
+# Use API architect agent
+claudish --model openai/gpt-5-codex --agent api-architect "design REST API for user management"
+
+# Discover available agents in your project
+claudish --list-agents
+```
+
+**Agent Features:**
+
+- ✅ **Direct agent selection** - No need to ask Claude to use an agent
+- ✅ **Automatic prefixing** - Adds `@agent-` automatically (`frontend:developer` → `@agent-frontend:developer`)
+- ✅ **Project-specific agents** - Works with any agents installed in `.claude/agents/`
+- ✅ **Agent discovery** - List all available agents with `--list-agents`
 
 ## Status Line Display
 
