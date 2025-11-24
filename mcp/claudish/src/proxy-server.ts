@@ -6,6 +6,7 @@ import { transformOpenAIToClaude, removeUriFormat } from "./transform.js";
 import { log, isLoggingEnabled, maskCredential, logStructured } from "./logger.js";
 import type { ProxyServer } from "./types.js";
 import { AdapterManager } from "./adapters/adapter-manager.js";
+import { MiddlewareManager, GeminiThoughtSignatureMiddleware } from "./middleware/index.js";
 
 /**
  * Create and start a Hono-based proxy server
@@ -29,6 +30,17 @@ export async function createProxyServer(
 
   const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
   const ANTHROPIC_COUNT_TOKENS_URL = "https://api.anthropic.com/v1/messages/count_tokens";
+
+  // Create middleware manager for model-specific behavior
+  const middlewareManager = new MiddlewareManager();
+
+  // Register middlewares
+  middlewareManager.register(new GeminiThoughtSignatureMiddleware());
+
+  // Initialize middlewares (async, but we don't await - it's fire-and-forget)
+  middlewareManager.initialize().catch((error) => {
+    log(`[Proxy] Middleware initialization error: ${error}`);
+  });
 
   // Create Hono app
   const app = new Hono();
@@ -318,6 +330,18 @@ export async function createProxyServer(
       // Convert messages from Claude to OpenAI format
       const messages: any[] = [];
 
+      // Model adapter for handling model-specific formats (e.g., Grok XML)
+      const adapterManager = new AdapterManager(model || "");
+      const adapter = adapterManager.getAdapter();
+
+      // Reset adapter state to ensure clean session (prevents state contamination)
+      if (typeof adapter.reset === 'function') {
+        adapter.reset();
+      }
+      if (isLoggingEnabled()) {
+        log(`[Proxy] Using adapter: ${adapter.getName()}`);
+      }
+
       // Add system messages
       if (claudeRequest.system) {
         let systemContent: string;
@@ -353,13 +377,21 @@ export async function createProxyServer(
           if (msg.role === "user") {
             // Handle user messages with tool_result blocks
             if (Array.isArray(msg.content)) {
-              const textParts: string[] = [];
+              const contentParts: any[] = [];
               const toolResults: any[] = [];
               const seenToolResultIds = new Set<string>(); // Track tool result IDs to prevent duplicates
 
               for (const block of msg.content) {
                 if (block.type === "text") {
-                  textParts.push(block.text);
+                  contentParts.push({ type: "text", text: block.text });
+                } else if (block.type === "image") {
+                  // Handle image blocks - convert to OpenAI image_url format
+                  contentParts.push({
+                    type: "image_url",
+                    image_url: {
+                      url: `data:${block.source.media_type};base64,${block.source.data}`
+                    }
+                  });
                 } else if (block.type === "tool_result") {
                   // Skip duplicate tool results with same tool_use_id
                   if (seenToolResultIds.has(block.tool_use_id)) {
@@ -368,28 +400,28 @@ export async function createProxyServer(
                   }
                   seenToolResultIds.add(block.tool_use_id);
 
-                  toolResults.push({
+                  // Add tool result message
+                  const toolResultMsg: any = {
                     role: "tool",
                     content:
                       typeof block.content === "string" ? block.content : JSON.stringify(block.content),
                     tool_call_id: block.tool_use_id,
-                  });
+                  };
+
+                  toolResults.push(toolResultMsg);
                 }
               }
 
-              // Add tool messages first, then user message
+              // Add tool messages first
               if (toolResults.length > 0) {
                 messages.push(...toolResults);
-                if (textParts.length > 0) {
-                  messages.push({
-                    role: "user",
-                    content: textParts.join(" "),
-                  });
-                }
-              } else if (textParts.length > 0) {
+              }
+
+              // Add user message with mixed content (text + images)
+              if (contentParts.length > 0) {
                 messages.push({
                   role: "user",
-                  content: textParts.join(" "),
+                  content: contentParts,
                 });
               }
             } else if (typeof msg.content === "string") {
@@ -416,6 +448,7 @@ export async function createProxyServer(
                   }
                   seenToolIds.add(block.id);
 
+                  // Build tool call object
                   toolCalls.push({
                     id: block.id,
                     type: "function",
@@ -521,6 +554,15 @@ export async function createProxyServer(
         stream: openrouterPayload.stream,
       });
 
+      // Call middleware beforeRequest hooks
+      // This allows middlewares to modify messages before sending to OpenRouter
+      await middlewareManager.beforeRequest({
+        modelId: model || "",
+        messages,
+        tools,
+        stream: openrouterPayload.stream,
+      });
+
       // Make request to OpenRouter
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -570,6 +612,13 @@ export async function createProxyServer(
           return c.json({ error: data.error.message || "Unknown error" }, 500);
         }
 
+        // Call middleware afterResponse hooks
+        // This allows middlewares to extract data from the response
+        await middlewareManager.afterResponse({
+          modelId: model || "",
+          response: data,
+        });
+
         // Transform OpenAI response to Claude format
         const choice = data.choices[0];
         const openaiMessage = choice.message;
@@ -595,6 +644,7 @@ export async function createProxyServer(
                   ? JSON.parse(toolCall.function.arguments)
                   : toolCall.function?.arguments,
             });
+
           }
         }
 
@@ -774,11 +824,21 @@ export async function createProxyServer(
                   clearInterval(pingInterval);
                 }
                 log(`[Proxy] Stream closed (reason: ${reason})`);
+
+                // Call middleware afterStreamComplete hooks
+                // This allows middlewares to process accumulated metadata
+                middlewareManager.afterStreamComplete(model || "", streamMetadata).catch((error) => {
+                  log(`[Middleware] Error in afterStreamComplete: ${error}`);
+                });
               }
             };
 
             // Track state
             let usage: any = null;
+
+            // Middleware metadata: Shared state across all chunks in this stream
+            // Allows middlewares to accumulate data (e.g., thought signatures)
+            const streamMetadata = new Map<string, any>();
 
             // Track content blocks with proper indices
             let currentBlockIndex = 0;
@@ -827,20 +887,16 @@ export async function createProxyServer(
             const toolCalls = new Map<number, { id: string; name: string; args: string; blockIndex: number; started: boolean; closed: boolean }>();
             const toolCallIds = new Set<string>(); // Track tool IDs to prevent duplicate blocks
 
-            // Model adapter for handling model-specific formats (e.g., Grok XML)
-            const adapterManager = new AdapterManager(model || "");
-            const adapter = adapterManager.getAdapter();
+            // NOTE: thoughtSignatures is declared earlier (line ~324) to be accessible in both
+            // message building and response handling code paths
 
-            // Reset adapter state to ensure clean session (prevents state contamination)
-            if (typeof adapter.reset === 'function') {
-              adapter.reset();
-            }
+            // NOTE: adapter is initialized earlier (line ~328) before message building
+            // because it's needed for Gemini thought signature extraction during message building
 
             // PERFORMANCE FIX: Track accumulated text length instead of full string
             // Adapters that need full context (like GrokAdapter) should maintain their own buffers
             // This prevents O(n²) performance degradation on long responses
             let accumulatedTextLength = 0;
-            log(`[Proxy] Using adapter: ${adapter.getName()}`);
 
             // Detect if this is first turn (no tool results in messages)
             // First turn: cache creation, subsequent: cache read
@@ -963,6 +1019,29 @@ export async function createProxyServer(
                         finishReason: chunk.choices?.[0]?.finish_reason,
                         hasUsage: !!chunk.usage,
                       });
+
+                      // DEBUG: Check if this chunk has tool_calls with extra_content
+                      const delta = chunk.choices?.[0]?.delta;
+                      if (delta?.tool_calls) {
+                        for (const toolCall of delta.tool_calls) {
+                          if (toolCall.extra_content) {
+                            logStructured("DEBUG: Found extra_content in tool_call", {
+                              tool_call_id: toolCall.id,
+                              has_extra_content: true,
+                              extra_content_keys: Object.keys(toolCall.extra_content),
+                              has_google: !!toolCall.extra_content.google
+                            });
+                          }
+                        }
+                      }
+
+                      // DEBUG: Log raw JSON if tool_calls present to see if extra_content is in dataStr
+                      if (delta?.tool_calls && dataStr.includes('tool_calls')) {
+                        logStructured("DEBUG: Raw chunk JSON (tool_calls)", {
+                          has_extra_content_in_raw: dataStr.includes('extra_content'),
+                          raw_snippet: dataStr.substring(0, 500)
+                        });
+                      }
                     }
 
                     // Capture usage
@@ -984,6 +1063,17 @@ export async function createProxyServer(
 
                     const choice = chunk.choices?.[0];
                     const delta = choice?.delta;
+
+                    // Call middleware afterStreamChunk hooks
+                    // This allows middlewares to extract data from each chunk
+                    if (delta) {
+                      await middlewareManager.afterStreamChunk({
+                        modelId: model || "",
+                        chunk,
+                        delta,
+                        metadata: streamMetadata,
+                      });
+                    }
 
                     // THINKING BLOCK SUPPORT: Separate reasoning from content
                     // Phase 1: Detect reasoning vs content separately (DO NOT MIX!)

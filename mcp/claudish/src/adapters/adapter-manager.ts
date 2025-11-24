@@ -3,12 +3,14 @@
  *
  * This allows us to handle different model quirks:
  * - Grok: XML function calls
+ * - Gemini: Thought signatures in reasoning_details
  * - Deepseek: (future)
  * - Others: (future)
  */
 
 import { BaseModelAdapter, DefaultAdapter } from "./base-adapter";
 import { GrokAdapter } from "./grok-adapter";
+import { GeminiAdapter } from "./gemini-adapter";
 
 export class AdapterManager {
   private adapters: BaseModelAdapter[];
@@ -16,7 +18,10 @@ export class AdapterManager {
 
   constructor(modelId: string) {
     // Register all available adapters
-    this.adapters = [new GrokAdapter(modelId)];
+    this.adapters = [
+      new GrokAdapter(modelId),
+      new GeminiAdapter(modelId)
+    ];
     this.defaultAdapter = new DefaultAdapter(modelId);
   }
 
