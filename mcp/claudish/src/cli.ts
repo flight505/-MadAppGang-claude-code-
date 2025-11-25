@@ -584,8 +584,9 @@ OPTIONS:
   --cost-tracker           Enable cost tracking for API usage (NB!)
   --audit-costs            Show cost analysis report
   --reset-costs            Reset accumulated cost statistics
-  --list-models            List available OpenRouter models (auto-updates if stale >2 days)
+  --list-models            List recommended OpenRouter models (auto-updates if stale >2 days)
   --list-models --json     Output model list in JSON format
+  -s, --search <query>     Fuzzy search all 400+ OpenRouter models by name, ID, or description
   --force-update           Force refresh model cache from OpenRouter API
   --version                Show version information
   -h, --help               Show this help message
@@ -655,10 +656,11 @@ EXAMPLES:
   claudish --verbose "analyze code structure"
 
 AVAILABLE MODELS:
-  List models: claudish --list-models
-  JSON output: claudish --list-models --json
-  Force update: claudish --list-models --force-update
-  (Cache auto-updates every 2 days)
+  List recommended:    claudish --list-models
+  Search all models:   claudish --search <query>
+  JSON output:         claudish --list-models --json
+  Force cache update:  claudish --list-models --force-update
+  (Cache auto-updates every 2 days, searches 400+ models)
 
 MORE INFO:
   GitHub: https://github.com/MadAppGang/claude-code
