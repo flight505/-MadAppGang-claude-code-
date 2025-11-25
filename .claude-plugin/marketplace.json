@@ -7,7 +7,7 @@
 	},
 	"metadata": {
 		"description": "MAG team's curated collection of Claude Code plugins for modern full-stack development",
-		"version": "4.0.1",
+		"version": "4.1.0",
 		"pluginRoot": "./plugins"
 	},
 	"plugins": [
@@ -15,7 +15,7 @@
 			"name": "frontend",
 			"source": "./plugins/frontend",
 			"description": "Comprehensive frontend development toolkit with TypeScript, React 19, Vite, TanStack Router & Query v5. Features ultra-efficient agent orchestration with user validation loops, multi-model plan review (catch issues before coding), issue-specific debug flows (UI/Functional/Mixed), multi-model code review with /review command (parallel execution, consensus analysis, 3-5x speedup), modular best practices (11 focused skills), intelligent workflow detection, and Chrome DevTools MCP debugging.",
-			"version": "3.7.1",
+			"version": "3.8.0",
 			"author": {
 				"name": "Jack Rudenko",
 				"email": "i@madappgang.com",
@@ -62,7 +62,7 @@
 			"name": "bun",
 			"source": "./plugins/bun",
 			"description": "Production-ready TypeScript backend development with Bun runtime. Includes specialized agents for backend development, API design, and DevOps. Features comprehensive best practices, tools integration (Biome, Prisma, Hono, Docker), testing workflows, and AWS ECS deployment guidance (2025).",
-			"version": "1.4.1",
+			"version": "1.5.0",
 			"author": {
 				"name": "Jack Rudenko",
 				"email": "i@madappgang.com",

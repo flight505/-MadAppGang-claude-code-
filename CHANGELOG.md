@@ -5,6 +5,27 @@ All notable changes to the MAG Claude Plugins project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Frontend 3.8.0] - 2025-11-25
+
+### Changed
+
+#### Opus 4.5 Agent Upgrades
+- **Upgraded critical agents to Claude Opus 4.5**:
+  - `architect` - Enhanced architectural reasoning and planning capabilities
+  - `reviewer` - Deeper code analysis and subtler bug detection
+  - `test-architect` - improved testing strategies and edge case identification
+  - `plan-reviewer` - Superior plan validation and risk assessment
+
+## [Bun 1.5.0] - 2025-11-25
+
+### Changed
+
+#### Opus 4.5 Agent Upgrades
+- **Upgraded `api-architect` to Claude Opus 4.5**:
+  - Better API design and system architecture planning
+  - Improved database schema design and normalization
+  - More robust security and performance planning
+
 ## [Orchestration 0.1.0] - 2025-11-22
 
 ### Added

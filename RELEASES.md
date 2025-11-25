@@ -6,6 +6,56 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 ---
 
+## Frontend Plugin v3.8.0 (2025-11-25)
+
+**Tag:** `plugins/frontend/v3.8.0`
+
+### 🎯 Overview
+
+**Opus 4.5 Intelligence Upgrade** - We've upgraded the most critical "thinking" agents to use Claude Opus 4.5. While Sonnet is excellent for coding speed, Opus 4.5 provides superior reasoning capabilities essential for architecture planning, complex code review, and test strategy design.
+
+### ✨ What's New
+
+#### Opus 4.5 Powered Agents
+
+We've switched the model for 4 key agents from `sonnet` to `opus`:
+
+| Agent | Role | Benefit of Opus 4.5 |
+|-------|------|---------------------|
+| `architect` | Architecture Planning | Deeper system design reasoning, better edge case anticipation, more robust planning |
+| `reviewer` | Code Review | significantly lower false positive rate, ability to catch subtle logical bugs, better security analysis |
+| `test-architect` | Test Strategy | more comprehensive test coverage strategies, better identification of critical paths |
+| `plan-reviewer` | Plan Validation | More rigorous validation of architectural decisions |
+
+### 🚀 Benefits
+
+- **Better Plans**: Architecture plans are more thorough and consider more long-term implications.
+- **Higher Quality Code Reviews**: Fewer nitpicks, more focus on substantive issues and architectural violations.
+- **Robust Testing**: Test strategies that catch more real-world regressions.
+
+### 🔄 Migration
+
+No action needed. The agents will automatically use the new model.
+
+---
+
+## Bun Backend Plugin v1.5.0 (2025-11-25)
+
+**Tag:** `plugins/bun/v1.5.0`
+
+### 🎯 Overview
+
+**Opus 4.5 Architecture Upgrade** - The API Architect agent has been upgraded to Claude Opus 4.5 to provide superior backend system design capabilities.
+
+### ✨ What's New
+
+- **Merged `api-architect` to Opus 4.5**:
+  - Provides deeper insight into database schema design (normalization/denormalization trade-offs)
+  - Better security architecture planning (RBAC/ABAC complexity)
+  - More scalable API endpoint design
+
+---
+
 ## Orchestration Plugin v0.1.0 (2025-11-22)
 
 **Tag:** `plugins/orchestration/v0.1.0`

@@ -12,8 +12,9 @@
 A complete Claude Code plugin marketplace with enterprise-level architecture:
 
 - **Plugin Marketplace** (`mag-claude-plugins`)
-- **Frontend Development Plugin** (v3.6.0) - Full-featured Sonnet-powered
+- **Frontend Development Plugin** (v3.8.0) - Full-featured Opus-powered
   - 11 Specialized Agents (Plan Reviewer + CSS Developer + Designer + UI Developer ecosystem with multi-model review)
+  - **Opus 4.5 Upgrades** (NEW in v3.8.0) - Critical architecture and review agents now use Opus 4.5 for superior reasoning
   - **Multi-Model Code Review** (NEW in v3.6.0) - `/review` command with parallel execution (3-5x speedup), consensus analysis, and cost transparency
   - 7 Slash Commands (including `/review` for multi-model code review)
   - **11 Modular Skills** (efficient context usage - load only what you need):
@@ -41,8 +42,9 @@ A complete Claude Code plugin marketplace with enterprise-level architecture:
   - 2 Skills (deep-analysis + semantic-code-search)
   - Pattern discovery and bug investigation
   - Semantic code search with claude-context MCP
-- **Bun Backend Plugin** (v1.2.0) - Production-ready TypeScript backend with Bun
+- **Bun Backend Plugin** (v1.5.0) - Production-ready TypeScript backend with Bun
   - 3 Specialized Agents (backend-developer + api-architect + apidog)
+  - **Opus 4.5 Architecture** (NEW in v1.5.0) - API Architect now uses Opus 4.5 for superior system design
   - 3 Slash Commands (/implement-api + /setup-project + /apidog)
   - 1 Skill (best-practices with camelCase conventions)
   - MCP Servers (Apidog)
@@ -736,12 +738,18 @@ Include marketplace in project settings (requires folder trust):
 
 **Current Versions:**
 - Orchestration Plugin: **v0.1.0** (2025-11-22)
-- Frontend Plugin: **v3.7.0** (2025-11-14)
+- Frontend Plugin: **v3.8.0** (2025-11-25)
 - Code Analysis Plugin: **v1.1.0**
-- Bun Backend Plugin: **v1.2.0**
+- Bun Backend Plugin: **v1.5.0** (2025-11-25)
 - Claudish CLI: **v1.1.2** (2025-11-11)
 
-**Latest Changes (Orchestration v0.1.0):**
+**Latest Changes (Frontend v3.8.0 & Bun v1.5.0):**
+- ✅ **Opus 4.5 Upgrades** - Critical agents upgraded to Claude Opus 4.5 for superior reasoning
+- ✅ **Frontend**: `architect`, `reviewer`, `test-architect`, `plan-reviewer` updated
+- ✅ **Bun**: `api-architect` updated
+- ✅ **Marketplace**: v4.1.0 release
+
+**Previous Changes (Orchestration v0.1.0):**
 - ✅ **NEW**: Orchestration plugin with 5 shared skills
 - ✅ **Skills-only architecture** - Pure knowledge, no agents/commands
 - ✅ **Skill bundles** - core, advanced, testing, complete
@@ -751,19 +759,14 @@ Include marketplace in project settings (requires folder trust):
 - ✅ **Context-efficient** - Load only what you need
 - ✅ **6,774 lines** of comprehensive orchestration knowledge
 
-**Previous Changes (Frontend v3.6.0):**
-- ✅ `/review` Command - Multi-model code review orchestrator with parallel execution
-- ✅ **Parallel Execution** - 3-5x speedup (15 min → 5 min) by running multiple AI models simultaneously
-- ✅ **Consensus Analysis** - Prioritize issues by cross-model agreement (unanimous/strong/majority/divergent)
-- ✅ **Cost Transparency** - Input/output token separation with range-based estimates
-
 **Git Tags:**
 - Orchestration: `plugins/orchestration/v0.1.0`
-- Frontend: `plugins/frontend/v3.7.0`
+- Frontend: `plugins/frontend/v3.8.0`
+- Bun: `plugins/bun/v1.5.0`
 - Use correct tag format when releasing: `plugins/{plugin-name}/vX.Y.Z`
 
 ---
 
 **Maintained by:** Jack Rudenko @ MadAppGang
-**Last Updated:** November 22, 2025
-**Version:** 4 plugins (Orchestration v0.1.0, Frontend v3.7.0, Code Analysis v1.1.0, Bun Backend v1.2.0)
+**Last Updated:** November 25, 2025
+**Version:** 4 plugins (Orchestration v0.1.0, Frontend v3.8.0, Code Analysis v1.1.0, Bun Backend v1.5.0)

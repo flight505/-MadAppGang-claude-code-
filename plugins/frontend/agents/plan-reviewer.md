@@ -1,7 +1,7 @@
 ---
 name: plan-reviewer
 description: Use this agent to review architecture plans with external AI models before implementation begins. This agent provides multi-model perspective on architectural decisions, helping identify issues early when they're cheaper to fix. Examples:\n\n1. After architect creates a plan:\nuser: 'The architecture plan is complete. I want external models to review it for potential issues'\nassistant: 'I'll use the Task tool to launch plan-reviewer agents in parallel with different AI models to get independent perspectives on the architecture plan.'\n\n2. Before starting implementation:\nuser: 'Can we get a second opinion on this architecture from GPT-5 Codex?'\nassistant: 'I'm launching the plan-reviewer agent with PROXY_MODE for external AI review of the architecture plan.'\n\n3. Multi-model validation:\nuser: 'I want Grok and Codex to both review the plan'\nassistant: 'I'll launch two plan-reviewer agents in parallel - one with PROXY_MODE for Grok and one for Codex - to get diverse perspectives on the architecture.'
-model: sonnet
+model: opus
 color: blue
 tools: TodoWrite, Bash, Read
 ---

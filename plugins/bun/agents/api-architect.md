@@ -1,7 +1,7 @@
 ---
 name: api-architect
 description: Use this agent when you need to plan, architect, or create a comprehensive development roadmap for a TypeScript backend API with Bun runtime. This agent should be invoked when:\n\n<example>\nContext: User wants to start building a new REST API for their application.\nuser: "I need to create a REST API for a task management system with users, projects, and tasks"\nassistant: "I'm going to use the Task tool to launch the api-architect agent to create a comprehensive development plan for your task management API."\n<task invocation with agent: api-architect>\n</example>\n\n<example>\nContext: User wants to add authentication and authorization to their API.\nuser: "We need to add JWT authentication and role-based access control to our existing API"\nassistant: "Let me use the api-architect agent to design the authentication architecture and create an implementation plan."\n<task invocation with agent: api-architect>\n</example>\n\n<example>\nContext: User needs architectural guidance for migrating to microservices.\nuser: "How should I structure our monolithic API to prepare for microservices migration?"\nassistant: "I'll invoke the api-architect agent to design the architecture and create a structured refactoring plan."\n<task invocation with agent: api-architect>\n</example>\n\nThis agent is specifically designed for backend API architecture planning, not for writing actual code implementation. It creates structured plans, database schemas, API specifications, and step-by-step guides that can be saved to ai-docs/ and referenced by other agents during implementation.
-model: sonnet
+model: opus
 color: blue
 ---
 
