@@ -11,6 +11,10 @@
 import { BaseModelAdapter, DefaultAdapter } from "./base-adapter";
 import { GrokAdapter } from "./grok-adapter";
 import { GeminiAdapter } from "./gemini-adapter";
+import { OpenAIAdapter } from "./openai-adapter";
+import { QwenAdapter } from "./qwen-adapter";
+import { MiniMaxAdapter } from "./minimax-adapter";
+import { DeepSeekAdapter } from "./deepseek-adapter";
 
 export class AdapterManager {
   private adapters: BaseModelAdapter[];
@@ -20,7 +24,11 @@ export class AdapterManager {
     // Register all available adapters
     this.adapters = [
       new GrokAdapter(modelId),
-      new GeminiAdapter(modelId)
+      new GeminiAdapter(modelId),
+      new OpenAIAdapter(modelId),
+      new QwenAdapter(modelId),
+      new MiniMaxAdapter(modelId),
+      new DeepSeekAdapter(modelId)
     ];
     this.defaultAdapter = new DefaultAdapter(modelId);
   }

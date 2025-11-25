@@ -26,38 +26,22 @@ function createTempSettingsFile(modelDisplay: string, port: string): string {
   const RESET = "\\033[0m";      // Reset colors
   const BOLD = "\\033[1m";       // Bold text
 
-  // Model context windows (max tokens) - using actual OpenRouter model IDs
-  // Values verified via web search (Nov 2025) for accurate context tracking
-  // This is our shortlist for better UX, but ANY model will work (falls back to 100k)
-  const MODEL_CONTEXT: Record<string, number> = {
-    "x-ai/grok-code-fast-1": 256000,              // 256k (verified: released with 256k context)
-    "openai/gpt-5-codex": 400000,                 // 400k (verified: 272k input + 128k output)
-    "minimax/minimax-m2": 204800,                 // 200k (verified: M2 reduced from M1's 1M to 200k)
-    "z-ai/glm-4.6": 200000,                       // 200k (verified: expanded from 128k in GLM-4.5)
-    "qwen/qwen3-vl-235b-a22b-instruct": 256000,   // 256k (verified: native 256k, expandable to 1M)
-    "anthropic/claude-sonnet-4.5": 200000,        // 200k (verified: Claude Sonnet 4.5 standard)
-  };
-  // Default to 100k for unknown models (safe fallback that works with most models)
-  const maxTokens = MODEL_CONTEXT[modelDisplay] || 100000;
-
   // Create ultra-compact status line optimized for thinking mode + cost + context tracking
   // Critical info: directory, model (actual OpenRouter ID), cost, context remaining
   // - Directory: where you are (truncated to 15 chars)
-  // - Model: actual OpenRouter model ID (e.g., "x-ai/grok-code-fast-1")
-  // - Cost: real-time session cost from Claude Code (total_cost_usd)
-  // - Context: percentage of context window remaining
-  // - Works with ANY OpenRouter model (uses fallback context size for unknown models)
-  // - Reserves ~40 chars for Claude's thinking mode/context UI elements
+  // - Model: actual OpenRouter model ID
+  // - Cost: real-time session cost from OpenRouter (via proxy)
+  // - Context: percentage remaining (calculated dynamically by proxy using real API limits)
   //
-  // CONTEXT TRACKING FIX: Read tokens from file written by proxy
-  // Claude Code doesn't provide token data to status line, so proxy writes it to a file
+  // CONTEXT TRACKING FIX: Read pre-calculated values from file written by proxy
+  // Proxy fetches real context limit from OpenRouter API and writes percentage to file
   // File path: /tmp/claudish-tokens-{PORT}.json
   const tokenFilePath = `/tmp/claudish-tokens-${port}.json`;
 
   const settings = {
     statusLine: {
       type: "command",
-      command: `JSON=$(cat) && DIR=$(basename "$(pwd)") && [ \${#DIR} -gt 15 ] && DIR="\${DIR:0:12}..." || true && COST=$(echo "$JSON" | grep -o '"total_cost_usd":[0-9.]*' | cut -d: -f2) && [ -z "$COST" ] && COST="0" || true && if [ -f "${tokenFilePath}" ]; then TOKENS=$(cat "${tokenFilePath}" 2>/dev/null) && INPUT=$(echo "$TOKENS" | grep -o '"input_tokens":[0-9]*' | grep -o '[0-9]*') && OUTPUT=$(echo "$TOKENS" | grep -o '"output_tokens":[0-9]*' | grep -o '[0-9]*') && TOTAL=$((INPUT + OUTPUT)) && CTX=$(echo "scale=0; (${maxTokens} - \$TOTAL) * 100 / ${maxTokens}" | bc 2>/dev/null); else INPUT=0 && OUTPUT=0 && CTX=100; fi && [ -z "$CTX" ] && CTX="100" || true && printf "${CYAN}${BOLD}%s${RESET} ${DIM}•${RESET} ${YELLOW}%s${RESET} ${DIM}•${RESET} ${GREEN}\\$%.3f${RESET} ${DIM}•${RESET} ${MAGENTA}%s%%${RESET}\\n" "$DIR" "$CLAUDISH_ACTIVE_MODEL_NAME" "$COST" "$CTX"`,
+      command: `JSON=$(cat) && DIR=$(basename "$(pwd)") && [ \${#DIR} -gt 15 ] && DIR="\${DIR:0:12}..." || true && CTX=100 && COST="0" && if [ -f "${tokenFilePath}" ]; then TOKENS=$(cat "${tokenFilePath}" 2>/dev/null) && REAL_COST=$(echo "$TOKENS" | grep -o '"total_cost":[0-9.]*' | cut -d: -f2) && REAL_CTX=$(echo "$TOKENS" | grep -o '"context_left_percent":[0-9]*' | grep -o '[0-9]*') && if [ ! -z "$REAL_COST" ]; then COST="$REAL_COST"; else COST=$(echo "$JSON" | grep -o '"total_cost_usd":[0-9.]*' | cut -d: -f2); fi && if [ ! -z "$REAL_CTX" ]; then CTX="$REAL_CTX"; fi; else COST=$(echo "$JSON" | grep -o '"total_cost_usd":[0-9.]*' | cut -d: -f2); fi && [ -z "$COST" ] && COST="0" || true && printf "${CYAN}${BOLD}%s${RESET} ${DIM}•${RESET} ${YELLOW}%s${RESET} ${DIM}•${RESET} ${GREEN}\\$%.3f${RESET} ${DIM}•${RESET} ${MAGENTA}%s%%${RESET}\\n" "$DIR" "$CLAUDISH_ACTIVE_MODEL_NAME" "$COST" "$CTX"`,
       padding: 0,
     },
   };

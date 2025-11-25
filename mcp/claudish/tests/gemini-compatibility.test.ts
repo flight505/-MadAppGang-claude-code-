@@ -114,10 +114,10 @@ describe("Gemini Thinking Block Compatibility", () => {
       expect(hasThinkingBlock).toBe(false); // CRITICAL: Must be false to prevent crash
       expect(hasTextBlock).toBe(true); // Must contain text
 
-      // Verify thinking content is preserved as text
-      expect(textContent).toContain("<thinking>");
-      expect(textContent).toContain("This is a thought process.");
-      expect(textContent).toContain("</thinking>");
+      // Verify thinking content is HIDDEN from client (but processed internally)
+      expect(textContent).not.toContain("<thinking>");
+      expect(textContent).not.toContain("This is a thought process.");
+      expect(textContent).not.toContain("</thinking>");
 
       // Verify regular content follows
       expect(textContent).toContain("Here is the result.");

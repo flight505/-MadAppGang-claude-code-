@@ -11,6 +11,7 @@
  */
 
 import { BaseModelAdapter, AdapterResult, ToolCall } from "./base-adapter";
+import { log } from "../logger";
 
 export class GrokAdapter extends BaseModelAdapter {
   private xmlBuffer: string = "";
@@ -77,6 +78,35 @@ export class GrokAdapter extends BaseModelAdapter {
       extractedToolCalls: toolCalls,
       wasTransformed: true,
     };
+  }
+
+  /**
+   * Handle request preparation - specifically for mapping reasoning parameters
+   */
+  override prepareRequest(request: any, originalRequest: any): any {
+    const modelId = this.modelId || "";
+
+    if (originalRequest.thinking) {
+      // Only Grok 3 Mini supports reasoning_effort
+      const supportsReasoningEffort = modelId.includes("mini");
+
+      if (supportsReasoningEffort) {
+        // Map budget to reasoning_effort (supported: low, high)
+        // using 20k as threshold based on typical extensive reasoning
+        const { budget_tokens } = originalRequest.thinking;
+        const effort = budget_tokens >= 20000 ? "high" : "low";
+
+        request.reasoning_effort = effort;
+        log(`[GrokAdapter] Mapped budget ${budget_tokens} -> reasoning_effort: ${effort}`);
+      } else {
+        log(`[GrokAdapter] Model ${modelId} does not support reasoning params. Stripping.`);
+      }
+
+      // Always remove raw thinking object for Grok to avoid API errors
+      delete request.thinking;
+    }
+
+    return request;
   }
 
   /**

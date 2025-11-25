@@ -600,6 +600,24 @@ claudish --model minimax/minimax-m2 "task C"
 
 **NEW in v1.1.0**: Claudish now fully supports models with extended thinking/reasoning capabilities (Grok, o1, etc.) with complete Anthropic Messages API protocol compliance.
 
+### Thinking Translation Model (v1.5.0)
+
+Claudish includes a sophisticated **Thinking Translation Model** that aligns Claude Code's native thinking budget with the unique requirements of every major AI provider.
+
+When you set a thinking budget in Claude (e.g., `budget: 16000`), Claudish automatically translates it:
+
+| Provider | Model | Translation Logic |
+| :--- | :--- | :--- |
+| **OpenAI** | o1, o3 | Maps budget to `reasoning_effort` (minimal/low/medium/high) |
+| **Google** | Gemini 3 | Maps to `thinking_level` (low/high) |
+| **Google** | Gemini 2.x | Passes exact `thinking_budget` (capped at 24k) |
+| **xAI** | Grok 3 Mini | Maps to `reasoning_effort` (low/high) |
+| **Qwen** | Qwen 2.5 | Enables `enable_thinking` + exact budget |
+| **MiniMax** | M2 | Enables `reasoning_split` (interleaved thinking) |
+| **DeepSeek** | R1 | Automatically manages reasoning (params stripped for safety) |
+
+This ensures you can use standard Claude Code thinking controls with **ANY** supported model, without worrying about API specificities.
+
 ### What is Extended Thinking?
 
 Some AI models (like Grok and OpenAI's o1) can show their internal reasoning process before providing the final answer. This "thinking" content helps you understand how the model arrived at its conclusion.
@@ -677,6 +695,61 @@ For complete protocol documentation, see:
 - [PROTOCOL_FIX_V2.md](./PROTOCOL_FIX_V2.md) - Critical V2 protocol fix (event ordering)
 - [COMPREHENSIVE_UX_ISSUE_ANALYSIS.md](./COMPREHENSIVE_UX_ISSUE_ANALYSIS.md) - Technical analysis
 - [THINKING_BLOCKS_IMPLEMENTATION.md](./THINKING_BLOCKS_IMPLEMENTATION.md) - Implementation summary
+
+## Dynamic Reasoning Support (NEW in v1.4.0)
+
+**Claudish now intelligently adapts to ANY reasoning model!**
+
+No more hardcoded lists or manual flags. Claudish dynamically queries OpenRouter metadata to enable thinking capabilities for any model that supports them.
+
+### 🧠 Dynamic Thinking Features
+
+1.  **Auto-Detection**:
+    - Automatically checks model capabilities at startup
+    - Enables Extended Thinking UI *only* when supported
+    - Future-proof: Works instantly with new models (e.g., `deepseek-r1` or `minimax-m2`)
+
+2.  **Smart Parameter Mapping**:
+    - **Claude**: Passes token budget directly (e.g., 16k tokens)
+    - **OpenAI (o1/o3)**: Translates budget to `reasoning_effort`
+        - "ultrathink" (≥32k) → `high`
+        - "think hard" (16k-32k) → `medium`
+        - "think" (<16k) → `low`
+    - **Gemini & Grok**: Preserves thought signatures and XML traces automatically
+
+3.  **Universal Compatibility**:
+    - Use "ultrathink" or "think hard" prompts with ANY supported model
+    - Claudish handles the translation layer for you
+
+## Context Scaling & Auto-Compaction
+
+**NEW in v1.2.0**: Claudish now intelligently manages token counting to support ANY context window size (from 128k to 2M+) while preserving Claude Code's native auto-compaction behavior.
+
+### The Challenge
+
+Claude Code naturally assumes a fixed context window (typically 200k tokens for Sonnet).
+- **Small Models (e.g., Grok 128k)**: Claude might overuse context and crash.
+- **Massive Models (e.g., Gemini 2M)**: Claude would compact way too early (at 10% usage), wasting the model's potential.
+
+### The Solution: Token Scaling
+
+Claudish implements a "Dual-Accounting" system:
+
+1. **Internal Scaling (For Claude):**
+   - We fetch the *real* context limit from OpenRouter (e.g., 1M tokens).
+   - We scale reported token usage so Claude *thinks* 1M tokens is 200k.
+   - **Result:** Auto-compaction triggers at the correct *percentage* of usage (e.g., 90% full), regardless of the actual limit.
+
+2. **Accurate Reporting (For You):**
+   - The status line displays the **Real Unscaled Usage** and **Real Context %**.
+   - You see specific costs and limits, while Claude remains blissfully unaware and stable.
+
+**Benefits:**
+- ✅ **Works with ANY model** size (128k, 1M, 2M, etc.)
+- ✅ **Unlocks massive context** windows (Claude Code becomes 10x more powerful with Gemini!)
+- ✅ **Prevents crashes** on smaller models (Grok)
+- ✅ **Native behavior** (compaction just works)
+
 
 ## Development
 

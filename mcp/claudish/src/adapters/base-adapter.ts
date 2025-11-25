@@ -51,6 +51,17 @@ export abstract class BaseModelAdapter {
   abstract getName(): string;
 
   /**
+   * Handle any request preparation before sending to the model
+   * Useful for mapping parameters like thinking budget -> reasoning_effort
+   * @param request - The OpenRouter payload being prepared
+   * @param originalRequest - The original Claude-format request
+   * @returns The modified request payload
+   */
+  prepareRequest(request: any, originalRequest: any): any {
+    return request;
+  }
+
+  /**
    * Reset internal state between requests (prevents state contamination)
    */
   reset(): void {

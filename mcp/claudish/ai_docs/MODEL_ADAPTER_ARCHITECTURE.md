@@ -12,7 +12,11 @@ Different AI models have different quirks and output formats. The model adapter 
 
 **Current Adapters:**
 - ✅ **GrokAdapter** - Translates xAI XML function calls to Claude Code tool_calls
-- 🔮 **Future**: Deepseek, Gemini, or other models with special formats
+- ✅ **OpenAIAdapter** - Translates budget to reasoning effort (o1/o3)
+- ✅ **GeminiAdapter** - Handles thought signature extraction and reasoning config
+- ✅ **QwenAdapter** - Handles enable_thinking and budget mapping
+- ✅ **MiniMaxAdapter** - Handles reasoning_split
+- ✅ **DeepSeekAdapter** - Strips unsupported parameters
 
 ---
 
@@ -24,6 +28,11 @@ Different AI models have different quirks and output formats. The model adapter 
 src/adapters/
 ├── base-adapter.ts      # Base class and interfaces
 ├── grok-adapter.ts      # Grok-specific XML translation
+├── openai-adapter.ts    # OpenAI reasoning translation
+├── gemini-adapter.ts    # Gemini logic
+├── qwen-adapter.ts      # Qwen logic
+├── minimax-adapter.ts   # MiniMax logic
+├── deepseek-adapter.ts  # DeepSeek logic
 ├── adapter-manager.ts   # Adapter selection logic
 └── index.ts            # Public exports
 ```
@@ -33,7 +42,12 @@ src/adapters/
 ```typescript
 BaseModelAdapter (abstract)
 ├── DefaultAdapter (no-op for standard models)
-└── GrokAdapter (XML → tool_calls translation)
+├── GrokAdapter (XML → tool_calls translation)
+├── OpenAIAdapter (Thinking translation)
+├── GeminiAdapter (Thinking translation)
+├── QwenAdapter (Thinking translation)
+├── MiniMaxAdapter (Thinking translation)
+└── DeepSeekAdapter (Parameter sanitization)
 ```
 
 ---
@@ -57,10 +71,34 @@ export abstract class BaseModelAdapter {
     accumulatedText: string
   ): AdapterResult;
 
+  // KEY NEW FEATURE (v1.5.0): Request Preparation
+  prepareRequest(request: any, originalRequest: any): any {
+     return request; // Default impl
+  }
+
   abstract shouldHandle(modelId: string): boolean;
   abstract getName(): string;
 }
 ```
+
+### 2. Request Preparation (New Phase)
+
+Before sending to OpenRouter, usage happens in `proxy-server.ts`:
+
+```typescript
+// 1. Get adapter
+const adapter = adapterManager.getAdapter();
+
+// 2. Prepare request (translate thinking params)
+adapter.prepareRequest(openrouterPayload, claudeRequest);
+
+// 3. Send to OpenRouter
+```
+
+This phase allows adapters to:
+- Map `thinking.budget_tokens` to model-specific fields
+- Enable specific flags (e.g., `enable_thinking`)
+- Remove unsupported parameters to prevent API errors
 
 ### 2. Adapter Selection
 

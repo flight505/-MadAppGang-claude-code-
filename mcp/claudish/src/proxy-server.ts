@@ -1176,77 +1176,20 @@ export async function createProxyServer(
                     if (hasReasoning || hasContent || hasEncryptedReasoning) {
                       lastContentDeltaTime = Date.now();
 
-                      // Phase 3: Handle reasoning content → thinking block
+                      // Phase 3: Handle reasoning content -> suppressed (INTERNAL ONLY)
+                      // We capture reasoning in middleware for protocol compliance, but hide it from user
                       if (hasReasoning && reasoningText) {
-                        // Start thinking block if not already started
-                        if (!reasoningBlockStarted) {
-                          // Close initial text block if reasoning arrives first
-                          // (Initial text block is created immediately for protocol compliance)
-                          if (textBlockStarted) {
-                            sendSSE("content_block_stop", {
-                              type: "content_block_stop",
-                              index: textBlockIndex,
-                            });
-                            textBlockStarted = false;
-                            if (isLoggingEnabled()) {
-                              log(`[Proxy] Closed initial text block to start thinking block`);
-                            }
-                          }
-
-                          // Start thinking block (as TEXT block with XML tags for compatibility)
-                          reasoningBlockIndex = currentBlockIndex++;
-                          sendSSE("content_block_start", {
-                            type: "content_block_start",
-                            index: reasoningBlockIndex,
-                            content_block: {
-                              type: "text", // Wrap thinking in text block to prevent client crashes
-                              text: "<thinking>\n",
-                            },
-                          });
-                          reasoningBlockStarted = true;
-                          if (isLoggingEnabled()) {
-                            log(`[Proxy] Started thinking block (as text) at index ${reasoningBlockIndex}`);
-                          }
-                        }
-
-                        // Send thinking delta as text
                         if (isLoggingEnabled()) {
-                          logStructured("Thinking Delta", {
+                          logStructured("Thinking Delta (Hidden)", {
                             thinking: reasoningText,
-                            blockIndex: reasoningBlockIndex,
                           });
                         }
-                        sendSSE("content_block_delta", {
-                          type: "content_block_delta",
-                          index: reasoningBlockIndex,
-                          delta: {
-                            type: "text_delta", // Send as text delta
-                            text: reasoningText,
-                          },
-                        });
+                        // HIDDEN: Do not send thinking to client to prevent pollution/crashes
                       }
 
-                      // Phase 4: Handle transition from reasoning → content
-                      if (reasoningBlockStarted && hasContent && !hasReasoning) {
-                        // Close thinking block (append closing tag first)
-                        sendSSE("content_block_delta", {
-                          type: "content_block_delta",
-                          index: reasoningBlockIndex,
-                          delta: {
-                            type: "text_delta",
-                            text: "\n</thinking>\n\n",
-                          },
-                        });
+                      // Phase 4: Handle transition -> deleted as we don't start thinking blocks anymore
+                      // Logic kept clean by simply not entering the block
 
-                        sendSSE("content_block_stop", {
-                          type: "content_block_stop",
-                          index: reasoningBlockIndex,
-                        });
-                        reasoningBlockStarted = false;
-                        if (isLoggingEnabled()) {
-                          log(`[Proxy] Closed thinking block at index ${reasoningBlockIndex}, transitioning to content`);
-                        }
-                      }
 
                       // Phase 5: Handle regular content → text block
                       if (hasContent && contentText) {
@@ -1551,6 +1494,17 @@ export async function createProxyServer(
     log("[Monitor] Mode: Passthrough to real Anthropic API");
     log("[Monitor] All traffic will be logged for analysis");
   } else {
+    // Get the actual assigned port (in case 0 was passed)
+    const address = server.address();
+    const actualPort = typeof address === 'object' && address ? address.port : port;
+
+    if (actualPort !== port && isLoggingEnabled()) {
+      log(`[Proxy] System assigned port: ${actualPort}`);
+    }
+
+    // Update local variable for return value
+    port = actualPort;
+
     log(`[Proxy] Server started on http://127.0.0.1:${port}`);
     log(`[Proxy] Routing to OpenRouter model: ${model}`);
   }
