@@ -1,7 +1,7 @@
 {
   "name": "claudish",
-  "version": "2.5.0",
-  "description": "CLI tool to run Claude Code with any OpenRouter model (Grok, GPT-5, MiniMax, etc.) via local Anthropic API-compatible proxy",
+  "version": "2.6.0",
+  "description": "Run Claude Code with any OpenRouter model - CLI tool and MCP server",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "bun run src/index.ts",
+    "dev:mcp": "bun run src/index.ts --mcp",
     "dev:grok": "bun run src/index.ts --interactive --model x-ai/grok-code-fast-1",
     "dev:grok:debug": "bun run src/index.ts --interactive --debug --log-level info --model x-ai/grok-code-fast-1",
     "dev:info": "bun run src/index.ts --interactive --monitor",
@@ -26,8 +27,10 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
+    "@modelcontextprotocol/sdk": "^1.22.0",
     "dotenv": "^17.2.3",
-    "hono": "^4.10.6"
+    "hono": "^4.10.6",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -52,6 +55,8 @@
     "openrouter",
     "proxy",
     "cli",
+    "mcp",
+    "model-context-protocol",
     "ai"
   ],
   "author": "Jack Rudenko <i@madappgang.com>",

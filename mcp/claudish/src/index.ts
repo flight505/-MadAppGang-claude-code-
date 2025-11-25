@@ -4,37 +4,49 @@
 import { config } from "dotenv";
 config(); // Loads .env from current working directory
 
-import { checkClaudeInstalled, runClaudeWithProxy } from "./claude-runner.js";
-import { parseArgs } from "./cli.js";
-import { DEFAULT_PORT_RANGE } from "./config.js";
-import { selectModelInteractively, promptForApiKey } from "./simple-selector.js";
-import { initLogger, getLogFilePath } from "./logger.js";
-import { findAvailablePort } from "./port-manager.js";
-import { createProxyServer } from "./proxy-server.js";
+// Check for MCP mode before loading heavy dependencies
+const isMcpMode = process.argv.includes("--mcp");
 
-/**
- * Read content from stdin
- */
-async function readStdin(): Promise<string> {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of process.stdin) {
-    chunks.push(Buffer.from(chunk));
-  }
-
-  return Buffer.concat(chunks).toString('utf-8');
+if (isMcpMode) {
+  // MCP server mode - dynamic import to keep CLI fast
+  import("./mcp-server.js").then((mcp) => mcp.startMcpServer());
+} else {
+  // CLI mode
+  runCli();
 }
 
-async function main() {
+/**
+ * Run CLI mode
+ */
+async function runCli() {
+  const { checkClaudeInstalled, runClaudeWithProxy } = await import("./claude-runner.js");
+  const { parseArgs } = await import("./cli.js");
+  const { DEFAULT_PORT_RANGE } = await import("./config.js");
+  const { selectModelInteractively, promptForApiKey } = await import("./simple-selector.js");
+  const { initLogger, getLogFilePath } = await import("./logger.js");
+  const { findAvailablePort } = await import("./port-manager.js");
+  const { createProxyServer } = await import("./proxy-server.js");
+
+  /**
+   * Read content from stdin
+   */
+  async function readStdin(): Promise<string> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks).toString("utf-8");
+  }
+
   try {
     // Parse CLI arguments
-    const config = await parseArgs(process.argv.slice(2));
+    const cliConfig = await parseArgs(process.argv.slice(2));
 
     // Initialize logger if debug mode with specified log level
-    initLogger(config.debug, config.logLevel);
+    initLogger(cliConfig.debug, cliConfig.logLevel);
 
     // Show debug log location if enabled
-    if (config.debug && !config.quiet) {
+    if (cliConfig.debug && !cliConfig.quiet) {
       const logFile = getLogFilePath();
       if (logFile) {
         console.log(`[claudish] Debug log: ${logFile}`);
@@ -49,19 +61,19 @@ async function main() {
     }
 
     // Prompt for OpenRouter API key if not set (interactive mode only, not monitor mode)
-    if (config.interactive && !config.monitor && !config.openrouterApiKey) {
-      config.openrouterApiKey = await promptForApiKey();
+    if (cliConfig.interactive && !cliConfig.monitor && !cliConfig.openrouterApiKey) {
+      cliConfig.openrouterApiKey = await promptForApiKey();
       console.log(""); // Empty line after input
     }
 
     // Show interactive model selector ONLY in interactive mode when model not specified
-    if (config.interactive && !config.monitor && !config.model) {
-      config.model = await selectModelInteractively({ freeOnly: config.freeOnly });
+    if (cliConfig.interactive && !cliConfig.monitor && !cliConfig.model) {
+      cliConfig.model = await selectModelInteractively({ freeOnly: cliConfig.freeOnly });
       console.log(""); // Empty line after selection
     }
 
     // In non-interactive mode, model must be specified (via --model flag or CLAUDISH_MODEL env var)
-    if (!config.interactive && !config.monitor && !config.model) {
+    if (!cliConfig.interactive && !cliConfig.monitor && !cliConfig.model) {
       console.error("Error: Model must be specified in non-interactive mode");
       console.error("Use --model <model> flag or set CLAUDISH_MODEL environment variable");
       console.error("Try: claudish --list-models");
@@ -69,46 +81,46 @@ async function main() {
     }
 
     // Read prompt from stdin if --stdin flag is set
-    if (config.stdin) {
+    if (cliConfig.stdin) {
       const stdinInput = await readStdin();
       if (stdinInput.trim()) {
         // Prepend stdin content to claudeArgs
-        config.claudeArgs = [stdinInput, ...config.claudeArgs];
+        cliConfig.claudeArgs = [stdinInput, ...cliConfig.claudeArgs];
       }
     }
 
     // Find available port
     const port =
-      config.port || (await findAvailablePort(DEFAULT_PORT_RANGE.start, DEFAULT_PORT_RANGE.end));
+      cliConfig.port || (await findAvailablePort(DEFAULT_PORT_RANGE.start, DEFAULT_PORT_RANGE.end));
 
     // Start proxy server
     const proxy = await createProxyServer(
       port,
-      config.monitor ? undefined : config.openrouterApiKey!,
-      config.monitor ? undefined : (typeof config.model === 'string' ? config.model : undefined),
-      config.monitor,
-      config.anthropicApiKey,
+      cliConfig.monitor ? undefined : cliConfig.openrouterApiKey!,
+      cliConfig.monitor ? undefined : (typeof cliConfig.model === "string" ? cliConfig.model : undefined),
+      cliConfig.monitor,
+      cliConfig.anthropicApiKey,
       {
-        opus: config.modelOpus,
-        sonnet: config.modelSonnet,
-        haiku: config.modelHaiku,
-        subagent: config.modelSubagent
+        opus: cliConfig.modelOpus,
+        sonnet: cliConfig.modelSonnet,
+        haiku: cliConfig.modelHaiku,
+        subagent: cliConfig.modelSubagent,
       }
     );
 
     // Run Claude Code with proxy
     let exitCode = 0;
     try {
-      exitCode = await runClaudeWithProxy(config, proxy.url);
+      exitCode = await runClaudeWithProxy(cliConfig, proxy.url);
     } finally {
       // Always cleanup proxy
-      if (!config.quiet) {
+      if (!cliConfig.quiet) {
         console.log("\n[claudish] Shutting down proxy server...");
       }
       await proxy.shutdown();
     }
 
-    if (!config.quiet) {
+    if (!cliConfig.quiet) {
       console.log("[claudish] Done\n");
     }
 
@@ -118,6 +130,3 @@ async function main() {
     process.exit(1);
   }
 }
-
-// Run main
-main();

@@ -4,13 +4,19 @@
 
 You've got Claude Code. It's brilliant. But what if you want to use GPT-5 Codex? Or Grok? Or that new model everyone's hyping on Twitter?
 
-That's Claudish. One command, any OpenRouter model, zero friction.
+That's Claudish. Two ways to use it:
 
+**CLI Mode** - Replace Claude with any model:
 ```bash
 claudish --model x-ai/grok-code-fast-1 "refactor this function"
 ```
 
-Done. Grok just refactored your code using Claude Code's interface.
+**MCP Server** - Use external models as tools inside Claude:
+```
+"Claude, ask Grok to review this code"
+```
+
+Both approaches, zero friction.
 
 ---
 
@@ -58,6 +64,7 @@ That's it. You're running Claude Code with a different brain.
 ### Usage Modes
 - **[Interactive Mode](usage/interactive-mode.md)** - The default experience, model selector, persistent sessions
 - **[Single-Shot Mode](usage/single-shot-mode.md)** - Run one task, get result, exit. Perfect for scripts
+- **[MCP Server Mode](usage/mcp-server.md)** - Use external models as tools inside Claude Code
 - **[Monitor Mode](usage/monitor-mode.md)** - Debug by watching real Anthropic API traffic
 
 ### Models
