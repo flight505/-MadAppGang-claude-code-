@@ -127,8 +127,8 @@ export async function parseArgs(args: string[]): Promise<ClaudishConfig> {
     } else if (arg === "--init") {
       await initializeClaudishSkill();
       process.exit(0);
-    } else if (arg === "--list-models") {
-      // Check for --json and --force-update flags
+    } else if (arg === "--top-models") {
+      // Show recommended/top models (curated list)
       const hasJsonFlag = args.includes("--json");
       const forceUpdate = args.includes("--force-update");
 
@@ -141,14 +141,22 @@ export async function parseArgs(args: string[]): Promise<ClaudishConfig> {
         printAvailableModels();
       }
       process.exit(0);
-    } else if (arg === "--search" || arg === "-s") {
-      const query = args[++i];
-      if (!query) {
-        console.error("--search requires a search term");
-        process.exit(1);
-      }
+    } else if (arg === "--models" || arg === "-s" || arg === "--search") {
+      // Check for optional search query (next arg that doesn't start with --)
+      const nextArg = args[i + 1];
+      const hasQuery = nextArg && !nextArg.startsWith("--");
+      const query = hasQuery ? args[++i] : null;
+
+      const hasJsonFlag = args.includes("--json");
       const forceUpdate = args.includes("--force-update");
-      await searchAndPrintModels(query, forceUpdate);
+
+      if (query) {
+        // Search mode: fuzzy search all models
+        await searchAndPrintModels(query, forceUpdate);
+      } else {
+        // List mode: show all models grouped by provider
+        await printAllModels(hasJsonFlag, forceUpdate);
+      }
       process.exit(0);
     } else {
       // All remaining args go to claude CLI
@@ -326,6 +334,117 @@ async function searchAndPrintModels(query: string, forceUpdate: boolean): Promis
   }
   console.log("");
   console.log("Use a model: claudish --model <model-id>");
+}
+
+/**
+ * Print ALL available models from OpenRouter
+ */
+async function printAllModels(jsonOutput: boolean, forceUpdate: boolean): Promise<void> {
+  let models: any[] = [];
+
+  // Check cache for all models
+  if (!forceUpdate && existsSync(ALL_MODELS_JSON_PATH)) {
+    try {
+      const cacheData = JSON.parse(readFileSync(ALL_MODELS_JSON_PATH, "utf-8"));
+      const lastUpdated = new Date(cacheData.lastUpdated);
+      const now = new Date();
+      const ageInDays = (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (ageInDays <= CACHE_MAX_AGE_DAYS) {
+        models = cacheData.models;
+        if (!jsonOutput) {
+          console.error(`✓ Using cached models (last updated: ${cacheData.lastUpdated.split('T')[0]})`);
+        }
+      }
+    } catch (e) {
+      // Ignore cache error
+    }
+  }
+
+  // Fetch if no cache or stale
+  if (models.length === 0) {
+    console.error("🔄 Fetching all models from OpenRouter...");
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/models");
+      if (!response.ok) throw new Error(`API returned ${response.status}`);
+
+      const data = await response.json();
+      models = data.data;
+
+      // Cache result
+      writeFileSync(ALL_MODELS_JSON_PATH, JSON.stringify({
+        lastUpdated: new Date().toISOString(),
+        models
+      }), "utf-8");
+
+      console.error(`✅ Cached ${models.length} models`);
+    } catch (error) {
+      console.error(`❌ Failed to fetch models: ${error}`);
+      process.exit(1);
+    }
+  }
+
+  // JSON output
+  if (jsonOutput) {
+    console.log(JSON.stringify({
+      count: models.length,
+      lastUpdated: new Date().toISOString().split('T')[0],
+      models: models.map(m => ({
+        id: m.id,
+        name: m.name,
+        context: m.context_length || m.top_provider?.context_length,
+        pricing: m.pricing
+      }))
+    }, null, 2));
+    return;
+  }
+
+  // Group by provider
+  const byProvider = new Map<string, any[]>();
+  for (const model of models) {
+    const provider = model.id.split('/')[0];
+    if (!byProvider.has(provider)) {
+      byProvider.set(provider, []);
+    }
+    byProvider.get(provider)!.push(model);
+  }
+
+  // Sort providers alphabetically
+  const sortedProviders = [...byProvider.keys()].sort();
+
+  console.log(`\nAll OpenRouter Models (${models.length} total):\n`);
+
+  for (const provider of sortedProviders) {
+    const providerModels = byProvider.get(provider)!;
+    console.log(`\n  ${provider.toUpperCase()} (${providerModels.length} models)`);
+    console.log("  " + "─".repeat(70));
+
+    for (const model of providerModels) {
+      // Format model ID (remove provider prefix, truncate if too long)
+      const shortId = model.id.split('/').slice(1).join('/');
+      const modelId = shortId.length > 40 ? shortId.substring(0, 37) + "..." : shortId;
+      const modelIdPadded = modelId.padEnd(42);
+
+      // Format pricing
+      const promptPrice = parseFloat(model.pricing?.prompt || "0") * 1000000;
+      const completionPrice = parseFloat(model.pricing?.completion || "0") * 1000000;
+      const avg = (promptPrice + completionPrice) / 2;
+      const pricing = avg === 0 ? "FREE" : `$${avg.toFixed(2)}/1M`;
+      const pricingPadded = pricing.padEnd(12);
+
+      // Context
+      const contextLen = model.context_length || model.top_provider?.context_length || 0;
+      const context = contextLen > 0 ? `${Math.round(contextLen/1000)}K` : "N/A";
+      const contextPadded = context.padEnd(8);
+
+      console.log(`    ${modelIdPadded} ${pricingPadded} ${contextPadded}`);
+    }
+  }
+
+  console.log("\n");
+  console.log("Use a model: claudish --model <provider/model-id>");
+  console.log("Search:      claudish --search <query>");
+  console.log("Top models:  claudish --top-models");
 }
 
 /**
@@ -584,9 +703,10 @@ OPTIONS:
   --cost-tracker           Enable cost tracking for API usage (NB!)
   --audit-costs            Show cost analysis report
   --reset-costs            Reset accumulated cost statistics
-  --list-models            List recommended OpenRouter models (auto-updates if stale >2 days)
-  --list-models --json     Output model list in JSON format
-  -s, --search <query>     Fuzzy search all 400+ OpenRouter models by name, ID, or description
+  --models                 List ALL OpenRouter models grouped by provider
+  --models <query>         Fuzzy search all models by name, ID, or description
+  --top-models             List recommended/top programming models (curated)
+  --json                   Output in JSON format (use with --models or --top-models)
   --force-update           Force refresh model cache from OpenRouter API
   --version                Show version information
   -h, --help               Show this help message
@@ -656,11 +776,12 @@ EXAMPLES:
   claudish --verbose "analyze code structure"
 
 AVAILABLE MODELS:
-  List recommended:    claudish --list-models
-  Search all models:   claudish --search <query>
-  JSON output:         claudish --list-models --json
-  Force cache update:  claudish --list-models --force-update
-  (Cache auto-updates every 2 days, searches 400+ models)
+  List all models:     claudish --models
+  Search models:       claudish --models <query>
+  Top recommended:     claudish --top-models
+  JSON output:         claudish --models --json  |  claudish --top-models --json
+  Force cache update:  claudish --models --force-update
+  (Cache auto-updates every 2 days)
 
 MORE INFO:
   GitHub: https://github.com/MadAppGang/claude-code
