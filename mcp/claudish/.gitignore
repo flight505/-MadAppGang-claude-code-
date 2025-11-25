@@ -24,3 +24,6 @@ Thumbs.db
 logs/
 *.log
 npm-debug.log*
+
+# Cache
+all-models.json
