@@ -686,11 +686,12 @@ Include marketplace in project settings (requires folder trust):
 
 ✅ **Production Ready**
 
-**4 Complete Plugins:**
+**5 Complete Plugins:**
 1. **Orchestration** (v0.1.1) - 5 skills - Shared multi-agent coordination patterns (skills-only)
 2. **Frontend** (v3.8.2) - 11 agents, 7 commands, 11 skills - Full-featured Opus-powered
 3. **Code Analysis** (v1.3.3) - 1 agent, 1 command, 2 skills - Deep investigation with semantic search
 4. **Bun Backend** (v1.5.2) - 3 agents, 3 commands, 1 skill - Production TypeScript backend with Bun
+5. **Agent Development** (v1.0.0) - 3 agents, 1 command, 3 skills - Create Claude Code agents with multi-model validation
 
 **Features:**
 - **Skills-First Architecture** - Orchestration plugin demonstrates pure skills pattern
@@ -741,12 +742,21 @@ Include marketplace in project settings (requires folder trust):
 - Frontend Plugin: **v3.8.2** (2025-11-26)
 - Code Analysis Plugin: **v1.3.3** (2025-11-26)
 - Bun Backend Plugin: **v1.5.2** (2025-11-26)
+- Agent Development Plugin: **v1.0.0** (2025-11-26)
 - Claudish CLI: **v1.1.2** (2025-11-11)
 
-**Latest Changes (All Plugins v*.*.2/v0.1.1):**
+**Latest Changes (Agent Development v1.0.0):**
+- ✅ **NEW**: Agent Development plugin for creating Claude Code agents
+- ✅ **3 Specialized Agents**: `agentdev:architect`, `agentdev:developer`, `agentdev:reviewer`
+- ✅ **1 Orchestration Command**: `/develop` for full-cycle agent development
+- ✅ **3 Reusable Skills**: `xml-standards`, `patterns`, `schemas`
+- ✅ **Multi-Model Validation**: Parallel external reviews via Claudish
+- ✅ **Depends on Orchestration**: Uses shared coordination patterns
+- ✅ **Marketplace**: v4.2.0 release
+
+**Previous Changes (Path Cleanup v4.1.2):**
 - ✅ **Path Cleanup** - Eliminated all hardcoded `/Users/jack` paths across entire codebase
 - ✅ **Documentation Portability** - All docs now use relative paths for better portability
-- ✅ **Marketplace**: v4.1.2 release
 
 **Previous Changes (Frontend v3.8.0 & Bun v1.5.0):**
 - ✅ **Opus 4.5 Upgrades** - Critical agents upgraded to Claude Opus 4.5 for superior reasoning
@@ -768,11 +778,12 @@ Include marketplace in project settings (requires folder trust):
 - Frontend: `plugins/frontend/v3.8.2`
 - Bun: `plugins/bun/v1.5.2`
 - Code Analysis: `plugins/code-analysis/v1.3.3`
+- Agent Development: `plugins/agentdev/v1.0.0`
 - Use correct tag format when releasing: `plugins/{plugin-name}/vX.Y.Z`
 
 ---
 
 **Maintained by:** Jack Rudenko @ MadAppGang
 **Last Updated:** November 26, 2025
-**Version:** 4 plugins (Orchestration v0.1.1, Frontend v3.8.2, Code Analysis v1.3.3, Bun Backend v1.5.2)
+**Version:** 5 plugins (Orchestration v0.1.1, Frontend v3.8.2, Code Analysis v1.3.3, Bun Backend v1.5.2, Agent Development v1.0.0)
 - do not use hardcoded path in code, docs, comments or any other files

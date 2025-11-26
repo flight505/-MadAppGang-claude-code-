@@ -5,6 +5,28 @@ All notable changes to the MAG Claude Plugins project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Marketplace 4.2.0] - 2025-11-26
+
+### Added
+- **NEW Plugin: Agent Development (agentdev)** - Create Claude Code agents with multi-model validation
+- 5 plugins now available in marketplace
+
+## [Agent Development 1.0.0] - 2025-11-26
+
+### Added
+- **3 Specialized Agents**:
+  - `agentdev:architect` - Design agents with comprehensive planning (Opus)
+  - `agentdev:developer` - Implement agents with perfect XML/YAML (Sonnet)
+  - `agentdev:reviewer` - Review agents for quality compliance (Opus)
+- **1 Orchestration Command**:
+  - `/develop` - Full-cycle development: design → plan review → implement → quality review → iterate
+- **3 Reusable Skills**:
+  - `agentdev:xml-standards` - XML tag structure patterns
+  - `agentdev:patterns` - Common agent patterns (proxy mode, TodoWrite, quality checks)
+  - `agentdev:schemas` - YAML frontmatter schemas
+- **Multi-Model Validation** - Parallel external reviews via Claudish
+- **Depends on Orchestration** - Uses `orchestration:multi-model-validation`, `orchestration:quality-gates`
+
 ## [Marketplace 4.1.2] - 2025-11-26
 
 ### Fixed

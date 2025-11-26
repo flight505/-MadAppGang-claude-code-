@@ -1,0 +1,43 @@
+{
+  "name": "agentdev",
+  "version": "1.0.0",
+  "description": "Create, implement, and review Claude Code agents and commands with multi-model validation. Full-cycle development workflow with design, implementation, and quality review agents.",
+  "author": "MadAppGang",
+  "license": "MIT",
+  "homepage": "https://github.com/MadAppGang/claude-code",
+
+  "tags": [
+    "agents",
+    "commands",
+    "development",
+    "multi-model",
+    "claudish",
+    "quality-review",
+    "xml-standards",
+    "orchestration"
+  ],
+
+  "agents": [
+    "architect",
+    "developer",
+    "reviewer"
+  ],
+
+  "commands": [
+    "develop"
+  ],
+
+  "skills": [
+    "xml-standards",
+    "patterns",
+    "schemas"
+  ],
+
+  "dependencies": {
+    "orchestration@mag-claude-plugins": "^0.1.1"
+  },
+
+  "compatibility": {
+    "claudeCode": ">=0.1.0"
+  }
+}

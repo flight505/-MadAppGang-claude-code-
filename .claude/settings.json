@@ -1,4 +1,8 @@
 {
-  "enabledPlugins": {},
+  "enabledPlugins": {
+    "agentdev@mag-claude-plugins": true,
+    "code-analysis@mag-claude-plugins": true,
+    "orchestration@mag-claude-plugins": true
+  },
   "enableAllProjectMcpServers": true
 }

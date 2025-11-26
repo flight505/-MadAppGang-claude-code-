@@ -7,7 +7,7 @@
 	},
 	"metadata": {
 		"description": "MAG team's curated collection of Claude Code plugins for modern full-stack development",
-		"version": "4.1.2",
+		"version": "4.2.0",
 		"pluginRoot": "./plugins"
 	},
 	"plugins": [
@@ -108,6 +108,29 @@
 				"error-recovery",
 				"tdd",
 				"skills"
+			],
+			"strict": true
+		},
+		{
+			"name": "agentdev",
+			"source": "./plugins/agentdev",
+			"description": "Create, implement, and review Claude Code agents and commands with multi-model validation. Full-cycle development workflow: design (architect) → plan review → implementation (developer) → quality review (reviewer) → iteration. Features parallel external model reviews, quality gates, and comprehensive XML/YAML standards.",
+			"version": "1.0.0",
+			"author": {
+				"name": "Jack Rudenko",
+				"email": "i@madappgang.com",
+				"company": "MadAppGang"
+			},
+			"category": "development",
+			"keywords": [
+				"agents",
+				"commands",
+				"development",
+				"multi-model",
+				"claudish",
+				"quality-review",
+				"xml-standards",
+				"orchestration"
 			],
 			"strict": true
 		}
