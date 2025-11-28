@@ -118,7 +118,7 @@ Professional toolkit for TypeScript/React development with intelligent workflow 
 - **13 Specialized Agents** - Including CSS Developer, Designer ecosystem (designer + designer-codex), UI Developer team (ui-developer + ui-developer-codex), architecture planning, code review, and browser testing
 - **6 Slash Commands** - Including `/implement` (8-phase with adaptive workflow detection), `/implement-ui` (with task decomposition), `/validate-ui`
 - **3 Skills** - Browser testing, API analysis, and proactive UI implementation
-- **4 MCP Servers** - Apidog, Figma, Chrome DevTools, Claudish (external AI models)
+- **3 MCP Servers** - Apidog, Figma, Chrome DevTools (plus [Claudish CLI](https://github.com/MadAppGang/claudish) for external AI models)
 - **CSS-Aware Validation** - DOM inspection, computed CSS analysis, pattern awareness
 - **CVA Best Practices** - Comprehensive shadcn/ui integration guidance
 - **Task Decomposition** - Parallel execution for independent UI components
@@ -241,7 +241,7 @@ skills: orchestration:complete  # All 5 skills
 
 #### 🤖 Claudish - Multi-Model CLI
 
-**Version:** 1.0.0 | **Category:** Development Tools | **Type:** Standalone CLI
+**Repository:** [github.com/MadAppGang/claudish](https://github.com/MadAppGang/claudish) | **Category:** Development Tools | **Type:** Standalone CLI
 
 Run Claude Code with any OpenRouter model via local Anthropic API proxy. **100% VERIFIED** - Routes to real OpenRouter models, NOT Anthropic.
 
@@ -249,7 +249,6 @@ Run Claude Code with any OpenRouter model via local Anthropic API proxy. **100% 
 - `x-ai/grok-code-fast-1` - xAI's Grok (fast coding, great for rapid prototyping)
 - `openai/gpt-5-codex` - OpenAI's GPT-5 Codex (advanced reasoning, complex tasks)
 - `minimax/minimax-m2` - MiniMax M2 (high performance, balanced)
-- `z-ai/glm-4.6` - GLM-4.6 (reasoning model via Mancer)
 - `qwen/qwen3-vl-235b-a22b-instruct` - Alibaba's Qwen (vision-language, multimodal)
 - `anthropic/claude-sonnet-4.5` - Claude Sonnet (for comparison/baseline)
 
@@ -263,9 +262,7 @@ Run Claude Code with any OpenRouter model via local Anthropic API proxy. **100% 
 
 **Installation:**
 ```bash
-cd mcp/claudish
-bun install
-bun run build
+npm install -g claudish
 ```
 
 **Usage:**
@@ -289,9 +286,7 @@ claudish --list-models
 claudish --help
 ```
 
-**Location:** `mcp/claudish/` (standalone tool, not a plugin)
-
-**Documentation:** See [mcp/claudish/README.md](./mcp/claudish/README.md) for detailed setup and usage.
+**Documentation:** See [github.com/MadAppGang/claudish](https://github.com/MadAppGang/claudish) for detailed setup and usage.
 
 **Perfect for:** Exploring different AI models, cost optimization, specialized tasks requiring specific model capabilities, testing model performance, avoiding Anthropic API limitations
 

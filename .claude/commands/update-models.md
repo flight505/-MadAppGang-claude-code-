@@ -354,42 +354,10 @@ $ARGUMENTS
           - DO NOT modify integration examples section
           - DO NOT modify maintenance instructions section
 
-          **ALSO Generate JSON file (mcp/claudish/recommended-models.json):**
-          - Create/overwrite: mcp/claudish/recommended-models.json
-          - Format: Array of model objects with metadata
-          - Schema:
-            ```json
-            {
-              "version": "1.1.1",
-              "lastUpdated": "2025-11-16",
-              "models": [
-                {
-                  "id": "x-ai/grok-code-fast-1",
-                  "name": "Grok Code Fast",
-                  "description": "xAI's fast coding model",
-                  "provider": "xAI",
-                  "category": "coding",
-                  "priority": 1,
-                  "pricing": {
-                    "input": "$0.20/1M",
-                    "output": "$1.50/1M",
-                    "average": "$0.85/1M"
-                  },
-                  "context": "256K",
-                  "recommended": true
-                }
-              ]
-            }
-            ```
-          - Extract model metadata from approved list
-          - Sort by priority (1 = highest)
-          - Add "recommended": true for models marked with ⭐ in Quick Reference
-
           **Return:**
           - Summary of changes (models added/removed/updated)
           - Version number (old → new)
-          - Confirmation of both file updates (MD + JSON)
-          - Path to generated JSON file"
+          - Confirmation of file update (MD)"
           ```
         </step>
         <step>Wait for model-scraper to complete</step>
@@ -400,15 +368,6 @@ $ARGUMENTS
 
           # Verify date updated in MD
           grep "Last Updated:" shared/recommended-models.md
-
-          # Verify JSON file created
-          test -f mcp/claudish/recommended-models.json
-
-          # Verify JSON is valid
-          cat mcp/claudish/recommended-models.json | jq .version
-
-          # Verify JSON has models array
-          cat mcp/claudish/recommended-models.json | jq '.models | length'
           ```
         </step>
         <step>If verification fails:
@@ -416,10 +375,6 @@ $ARGUMENTS
             ```bash
             cp shared/recommended-models.md.backup \
                shared/recommended-models.md
-            ```
-          - Remove invalid JSON if created:
-            ```bash
-            rm -f mcp/claudish/recommended-models.json
             ```
           - Report error and stop
           - Preserve backup for debugging
@@ -435,18 +390,12 @@ $ARGUMENTS
         - ✅ **MD File:** All approved models present
         - ✅ **MD File:** Decision tree section unchanged
         - ✅ **MD File:** Valid markdown (no syntax errors)
-        - ✅ **JSON File:** Created at mcp/claudish/recommended-models.json
-        - ✅ **JSON File:** Valid JSON format (jq can parse)
-        - ✅ **JSON File:** Has version field matching MD version
-        - ✅ **JSON File:** Has models array with ≥7 models
-        - ✅ **JSON File:** All models have required fields (id, name, provider, category, priority)
       </quality_gate>
 
       <error_recovery>
-        - If model-scraper fails: Restore backup, remove invalid JSON, report error
-        - If MD verification fails: Restore backup, remove JSON, report specific issue
-        - If JSON verification fails: Restore MD backup, remove JSON, report JSON error
-        - If file corrupted: Restore backup, remove JSON, suggest manual edit
+        - If model-scraper fails: Restore backup, report error
+        - If MD verification fails: Restore backup, report specific issue
+        - If file corrupted: Restore backup, suggest manual edit
       </error_recovery>
     </phase>
 
@@ -608,21 +557,14 @@ $ARGUMENTS
          - Balance categories (ensure diversity)
          - Limit to 9-12 models
       3. **Categorization** - Assign categories (coding, reasoning, vision, budget)
-      4. **File Updates** - Update BOTH files:
+      4. **File Updates** - Update Markdown file:
 
-         **A) Markdown File (shared/recommended-models.md):**
+         **Markdown File (shared/recommended-models.md):**
          - Quick Reference Table
          - Model entries per category
          - Performance Benchmarks
          - Version increment (patch)
          - Last Updated date
-
-         **B) JSON File (mcp/claudish/recommended-models.json):**
-         - Create/overwrite JSON file for Claudish runtime
-         - Extract model metadata (id, name, provider, category, priority, pricing, context)
-         - Include version and lastUpdated fields
-         - Sort by priority (1 = highest)
-         - Mark recommended models (⭐ in Quick Reference)
     </capabilities>
 
     <input_format>

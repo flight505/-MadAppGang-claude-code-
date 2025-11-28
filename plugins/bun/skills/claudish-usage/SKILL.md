@@ -1270,12 +1270,12 @@ Include:
 ## Additional Resources
 
 **Documentation:**
-- Full README: `mcp/claudish/README.md` (in repository root)
 - AI Agent Guide: Print with `claudish --help-ai`
-- Model Integration: `skills/claudish-integration/SKILL.md` (in repository root)
+- Full documentation at GitHub repository
 
 **External Links:**
-- Claudish GitHub: https://github.com/MadAppGang/claude-code
+- Claudish GitHub: https://github.com/MadAppGang/claudish
+- Install: `npm install -g claudish`
 - OpenRouter: https://openrouter.ai
 - OpenRouter Models: https://openrouter.ai/models
 - OpenRouter API Docs: https://openrouter.ai/docs

@@ -1,6 +1,10 @@
 # Claudish Release Process
 
-**Last Updated:** 2025-11-16
+> **DEPRECATED:** Claudish has been moved to a separate repository.
+> See https://github.com/MadAppGang/claudish for the current release process.
+> This document is kept for historical reference only.
+
+**Last Updated:** 2025-11-16 (Deprecated: 2025-11-28)
 **Maintained By:** Jack Rudenko @ MadAppGang
 
 ---

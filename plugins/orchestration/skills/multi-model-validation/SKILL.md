@@ -1002,4 +1002,4 @@ Master this skill and you can validate any implementation with multiple AI persp
 **Extracted From:**
 - `/review` command (complete multi-model review orchestration)
 - `CLAUDE.md` Parallel Multi-Model Execution Protocol
-- `shared/skills/claudish-usage` (proxy mode patterns)
+- Claudish CLI (https://github.com/MadAppGang/claudish) proxy mode patterns

@@ -717,7 +717,6 @@ async function getModelsForReview() {
 **Related Documents:**
 - `ai-docs/CLAUDISH_INTEGRATION_ARCHITECTURE.md` - Overall architecture
 - `ai-docs/CLAUDISH_ENHANCEMENT_PROPOSAL.md` - Claudish feature spec
-- `mcp/claudish/README.md` - Claudish documentation
 
 **Claudish Version Requirements:**
 - JSON output: Claudish v1.2.0+
@@ -725,5 +724,6 @@ async function getModelsForReview() {
 - Text output: All versions
 
 **External Resources:**
-- Claudish npm: https://www.npmjs.com/package/claudish
+- Claudish GitHub: https://github.com/MadAppGang/claudish
+- Install: `npm install -g claudish`
 - OpenRouter: https://openrouter.ai

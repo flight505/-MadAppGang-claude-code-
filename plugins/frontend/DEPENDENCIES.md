@@ -157,8 +157,13 @@ Personal `.claude/settings.local.json`:
 
 #### 4. Claudish CLI (External AI Models)
 
+**Install:**
+```bash
+npm install -g claudish
+```
+
 **Required:**
-- Claudish installed: `npx claudish --version`
+- Claudish installed: `claudish --version`
 - `OPENROUTER_API_KEY` (secret, personal) - Your OpenRouter API key
 
 **Get your key:** https://openrouter.ai/keys
@@ -178,11 +183,11 @@ export OPENROUTER_API_KEY="sk-or-v1-your-key-here"
 
 **Usage modes:**
 - **Interactive mode** (default): `claudish` - Shows model selector, starts persistent session
-- **Single-shot mode** (agents use this): `npx claudish --model <model> --stdin` - One task, returns result, exits
+- **Single-shot mode** (agents use this): `claudish --model <model> --stdin` - One task, returns result, exits
 
 **Note**: Agents automatically use single-shot mode with `--model` flag for automation.
 
-**See also:** `/mcp/claudish/README.md` for detailed usage
+**Documentation:** https://github.com/MadAppGang/claudish
 
 ### Optional Environment Variables
 

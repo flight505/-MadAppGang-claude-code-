@@ -672,7 +672,7 @@ The `/implement` command now requires PHASE 1.5 completion:
 - **CLAUDE.md** - Updated with v3.2.0 information and plan review workflow
 - **CHANGELOG.md** - Detailed changelog entry
 - **Plugin Documentation** - See `/implement` command for complete PHASE 1.5 workflow
-- **Claudish CLI** - See mcp/claudish/README.md for OpenRouter model catalog
+- **Claudish CLI** - See https://github.com/MadAppGang/claudish for OpenRouter model catalog
 
 ### 🏷️ Git Tag
 

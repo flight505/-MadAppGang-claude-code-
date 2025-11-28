@@ -63,8 +63,10 @@ A complete Claude Code plugin marketplace with enterprise-level architecture:
   - **Skill bundles** - core, advanced, testing, complete
   - **Context-efficient** - Load only needed skills (vs monolithic)
   - **Dependency model** - Auto-installs with plugins that need orchestration
-- **Claudish** (v1.0.0) - Run Claude Code with OpenRouter models
-  - CLI tool (standalone, not a plugin)
+- **Claudish** - Run Claude Code with OpenRouter models
+  - **GitHub**: https://github.com/MadAppGang/claudish
+  - **Install**: `npm install -g claudish`
+  - CLI tool (standalone, separate repository)
   - Local Anthropic API proxy
   - **Top Recommended Models for Development:**
     - `x-ai/grok-code-fast-1` - xAI's Grok (fast coding)
@@ -743,7 +745,7 @@ Include marketplace in project settings (requires folder trust):
 - Code Analysis Plugin: **v1.3.3** (2025-11-26)
 - Bun Backend Plugin: **v1.5.2** (2025-11-26)
 - Agent Development Plugin: **v1.0.0** (2025-11-26)
-- Claudish CLI: **v1.1.2** (2025-11-11)
+- Claudish CLI: See https://github.com/MadAppGang/claudish (separate repository)
 
 **Latest Changes (Agent Development v1.0.0):**
 - ✅ **NEW**: Agent Development plugin for creating Claude Code agents

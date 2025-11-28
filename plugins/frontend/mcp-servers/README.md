@@ -118,8 +118,13 @@ The configuration is saved, so you won't be asked again.
 
 ### Claudish CLI (External AI Models)
 
+**Install:**
+```bash
+npm install -g claudish
+```
+
 **Required:**
-- Claudish installed: `npx claudish --version`
+- Claudish installed: `claudish --version`
 - `OPENROUTER_API_KEY` (secret, personal) - Your OpenRouter API key
 
 **Get your key:** https://openrouter.ai/keys
@@ -132,7 +137,7 @@ The configuration is saved, so you won't be asked again.
 
 **Usage modes:**
 - **Interactive mode** (default): `claudish` - Shows model selector, persistent session
-- **Single-shot mode** (agents use): `npx claudish --model <model> --stdin` - One task, exits
+- **Single-shot mode** (agents use): `claudish --model <model> --stdin` - One task, exits
 
 **Available models:**
 - `x-ai/grok-code-fast-1` - xAI Grok (fast coding)
@@ -146,7 +151,7 @@ The configuration is saved, so you won't be asked again.
 - `/validate-ui` command (design validation)
 - All agents with PROXY_MODE support (automatic single-shot mode)
 
-**See:** `/mcp/claudish/README.md` for detailed usage
+**Documentation:** https://github.com/MadAppGang/claudish
 
 ## Configuration Patterns
 

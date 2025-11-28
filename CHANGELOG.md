@@ -5,6 +5,15 @@ All notable changes to the MAG Claude Plugins project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Marketplace 4.3.0] - 2025-11-28
+
+### Changed
+- **Claudish moved to separate repository** - Claudish CLI is now maintained at https://github.com/MadAppGang/claudish
+  - Install: `npm install -g claudish`
+  - Removed `mcp/claudish` directory from this repository
+  - Updated all documentation and skills to reference new location
+  - Historical changelog entries preserved as-is for reference
+
 ## [Marketplace 4.2.0] - 2025-11-26
 
 ### Added

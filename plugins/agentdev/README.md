@@ -61,9 +61,11 @@ Create, implement, and review Claude Code agents and commands with multi-model v
 
 ## Multi-Model Validation
 
-The `/develop` command uses external AI models via Claudish for:
+The `/develop` command uses external AI models via [Claudish](https://github.com/MadAppGang/claudish) for:
 - **Plan Review** - Validate design before implementation
 - **Implementation Review** - Quality check with multiple perspectives
+
+**Install Claudish:** `npm install -g claudish`
 
 Supported models:
 - `x-ai/grok-code-fast-1` - Fast, coding-focused
