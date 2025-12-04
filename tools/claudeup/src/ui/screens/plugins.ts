@@ -1,205 +1,125 @@
 import blessed from 'neo-blessed';
 import type { AppState } from '../app.js';
 import { createHeader, createFooter, showMessage, showConfirm } from '../app.js';
+import { defaultMarketplaces } from '../../data/marketplaces.js';
 import {
+  addMarketplace,
+  removeMarketplace,
   getConfiguredMarketplaces,
   enablePlugin,
 } from '../../services/claude-settings.js';
 import {
-  getAvailablePlugins,
   saveInstalledPluginVersion,
   removeInstalledPluginVersion,
   clearMarketplaceCache,
+  getAvailablePlugins,
   type PluginInfo,
 } from '../../services/plugin-manager.js';
 
+interface ListItem {
+  label: string;
+  type: 'marketplace' | 'plugin' | 'empty';
+  marketplace?: (typeof defaultMarketplaces)[0];
+  marketplaceEnabled?: boolean;
+  plugin?: PluginInfo;
+}
+
 export async function createPluginsScreen(state: AppState): Promise<void> {
-  createHeader(state, 'Manage Plugins');
+  createHeader(state, 'Plugins');
 
   const configuredMarketplaces = await getConfiguredMarketplaces(state.projectPath);
 
-  // Check if any marketplaces are configured
-  if (Object.keys(configuredMarketplaces).length === 0) {
-    blessed.box({
-      parent: state.screen,
-      top: 'center',
-      left: 'center',
-      width: 50,
-      height: 7,
-      content: `{center}{bold}No Marketplaces Configured{/bold}{/center}
-
-Go to Plugin Marketplaces to add one first.
-
-{center}{gray-fg}Press Esc to go back{/gray-fg}{/center}`,
-      tags: true,
-      border: {
-        type: 'line',
-      },
-      style: {
-        border: {
-          fg: 'yellow',
-        },
-      },
-    });
-
-    createFooter(state, 'Esc Back');
-    state.screen.render();
-    return;
-  }
-
-  // Show loading message
-  const loadingBox = blessed.box({
-    parent: state.screen,
-    top: 'center',
-    left: 'center',
-    width: 30,
-    height: 3,
-    content: '{center}Fetching plugins...{/center}',
-    tags: true,
-    border: {
-      type: 'line',
-    },
-    style: {
-      border: {
-        fg: 'cyan',
-      },
-    },
-  });
-  state.screen.render();
-
-  // Fetch available plugins
-  let plugins: PluginInfo[];
+  // Fetch all available plugins
+  let allPlugins: PluginInfo[] = [];
   try {
-    plugins = await getAvailablePlugins(state.projectPath);
-  } catch (error) {
-    loadingBox.destroy();
-    blessed.box({
-      parent: state.screen,
-      top: 'center',
-      left: 'center',
-      width: 50,
-      height: 5,
-      content: `{center}{bold}{red-fg}Error Fetching Plugins{/red-fg}{/bold}{/center}
-
-{center}${error instanceof Error ? error.message : 'Unknown error'}{/center}`,
-      tags: true,
-      border: {
-        type: 'line',
-      },
-      style: {
-        border: {
-          fg: 'red',
-        },
-      },
-    });
-    createFooter(state, 'Esc Back');
-    state.screen.render();
-    return;
+    allPlugins = await getAvailablePlugins(state.projectPath);
+  } catch {
+    // Continue with empty plugins
   }
 
-  loadingBox.destroy();
-
-  if (plugins.length === 0) {
-    blessed.box({
-      parent: state.screen,
-      top: 'center',
-      left: 'center',
-      width: 50,
-      height: 5,
-      content: `{center}{bold}No Plugins Found{/bold}{/center}
-
-{center}No plugins available from configured marketplaces.{/center}`,
-      tags: true,
-      border: {
-        type: 'line',
-      },
-      style: {
-        border: {
-          fg: 'yellow',
-        },
-      },
-    });
-    createFooter(state, 'Esc Back');
-    state.screen.render();
-    return;
-  }
-
-  // Group by marketplace
-  const byMarketplace = new Map<string, PluginInfo[]>();
-  for (const plugin of plugins) {
-    const existing = byMarketplace.get(plugin.marketplaceDisplay) || [];
+  // Group plugins by marketplace
+  const pluginsByMarketplace = new Map<string, PluginInfo[]>();
+  for (const plugin of allPlugins) {
+    const existing = pluginsByMarketplace.get(plugin.marketplace) || [];
     existing.push(plugin);
-    byMarketplace.set(plugin.marketplaceDisplay, existing);
+    pluginsByMarketplace.set(plugin.marketplace, existing);
   }
 
-  // Build list items
-  const listItems: { label: string; plugin?: PluginInfo; isHeader?: boolean }[] = [];
+  // Build unified list
+  const listItems: ListItem[] = [];
 
-  for (const [marketplace, marketplacePlugins] of byMarketplace) {
+  for (const marketplace of defaultMarketplaces) {
+    const isEnabled = configuredMarketplaces[marketplace.name] !== undefined;
+    const plugins = pluginsByMarketplace.get(marketplace.name) || [];
+
+    // Marketplace header
+    const enabledBadge = isEnabled ? '{green-fg}✓{/green-fg}' : '{gray-fg}○{/gray-fg}';
+    const officialBadge = marketplace.official ? ' {cyan-fg}[Official]{/cyan-fg}' : '';
+    const pluginCount = plugins.length > 0 ? ` {gray-fg}(${plugins.length}){/gray-fg}` : '';
+
     listItems.push({
-      label: `{bold}── ${marketplace} ──{/bold}`,
-      isHeader: true,
+      label: `${enabledBadge} {bold}${marketplace.displayName}{/bold}${officialBadge}${pluginCount}`,
+      type: 'marketplace',
+      marketplace,
+      marketplaceEnabled: isEnabled,
     });
 
-    for (const plugin of marketplacePlugins) {
-      // Status indicators
-      let status = '{gray-fg}○{/gray-fg}';
-      if (plugin.enabled) {
-        status = '{green-fg}●{/green-fg}';
-      } else if (plugin.installedVersion) {
-        status = '{yellow-fg}●{/yellow-fg}';
+    // Plugins under this marketplace (if enabled)
+    if (isEnabled && plugins.length > 0) {
+      for (const plugin of plugins) {
+        let status = '{gray-fg}○{/gray-fg}';
+        if (plugin.enabled) {
+          status = '{green-fg}●{/green-fg}';
+        } else if (plugin.installedVersion) {
+          status = '{yellow-fg}●{/yellow-fg}';
+        }
+
+        let versionDisplay = `{gray-fg}v${plugin.version}{/gray-fg}`;
+        if (plugin.hasUpdate) {
+          versionDisplay = `{yellow-fg}v${plugin.installedVersion} → v${plugin.version}{/yellow-fg}`;
+        } else if (plugin.installedVersion) {
+          versionDisplay = `{green-fg}v${plugin.installedVersion}{/green-fg}`;
+        }
+
+        const updateBadge = plugin.hasUpdate ? ' {yellow-fg}⬆{/yellow-fg}' : '';
+
+        listItems.push({
+          label: `    ${status} ${plugin.name} ${versionDisplay}${updateBadge}`,
+          type: 'plugin',
+          plugin,
+        });
       }
-
-      // Version display
-      let versionDisplay = `v${plugin.version}`;
-      if (plugin.hasUpdate) {
-        versionDisplay = `{red-fg}v${plugin.installedVersion}{/red-fg} → {green-fg}v${plugin.version}{/green-fg}`;
-      } else if (plugin.installedVersion) {
-        versionDisplay = `{cyan-fg}v${plugin.installedVersion}{/cyan-fg}`;
-      }
-
-      // Update badge
-      const updateBadge = plugin.hasUpdate ? ' {yellow-fg}⬆{/yellow-fg}' : '';
-
+    } else if (isEnabled) {
       listItems.push({
-        label: `  ${status} {bold}${plugin.name}{/bold} ${versionDisplay}${updateBadge}`,
-        plugin,
+        label: '    {gray-fg}No plugins available{/gray-fg}',
+        type: 'empty',
       });
     }
 
-    listItems.push({ label: '', isHeader: true });
+    // Empty line between marketplaces
+    listItems.push({ label: '', type: 'empty' });
   }
 
+  // List
   const list = blessed.list({
     parent: state.screen,
     top: 3,
     left: 2,
     width: '50%-2',
-    height: '100%-6',
+    height: '100%-5',
     items: listItems.map((item) => item.label),
     keys: true,
-    vi: true,
+    vi: false,
     mouse: true,
     tags: true,
     scrollable: true,
-    border: {
-      type: 'line',
-    },
+    border: { type: 'line' },
     style: {
-      selected: {
-        bg: 'blue',
-        fg: 'white',
-      },
-      border: {
-        fg: 'gray',
-      },
+      selected: { bg: 'blue', fg: 'white' },
+      border: { fg: 'gray' },
     },
-    scrollbar: {
-      ch: '│',
-      style: {
-        bg: 'gray',
-      },
-    },
+    scrollbar: { ch: '│', style: { bg: 'gray' } },
+    label: ' Marketplaces & Plugins ',
   });
 
   // Detail panel
@@ -208,17 +128,11 @@ Go to Plugin Marketplaces to add one first.
     top: 3,
     right: 2,
     width: '50%-2',
-    height: '100%-6',
+    height: '100%-5',
     content: '',
     tags: true,
-    border: {
-      type: 'line',
-    },
-    style: {
-      border: {
-        fg: 'gray',
-      },
-    },
+    border: { type: 'line' },
+    style: { border: { fg: 'gray' } },
     label: ' Details ',
   });
 
@@ -227,45 +141,74 @@ Go to Plugin Marketplaces to add one first.
     const selected = list.selected as number;
     const item = listItems[selected];
 
-    if (!item || item.isHeader || !item.plugin) {
-      detailBox.setContent('{gray-fg}Select a plugin to see details{/gray-fg}');
+    if (!item || item.type === 'empty') {
+      detailBox.setContent('{gray-fg}Select an item to see details{/gray-fg}');
       state.screen.render();
       return;
     }
 
-    const plugin = item.plugin;
+    if (item.type === 'marketplace' && item.marketplace) {
+      const mp = item.marketplace;
+      const statusText = item.marketplaceEnabled
+        ? '{green-fg}● Enabled{/green-fg}'
+        : '{gray-fg}○ Not added{/gray-fg}';
 
-    let statusText = '{gray-fg}Not installed{/gray-fg}';
-    if (plugin.enabled) {
-      statusText = '{green-fg}● Enabled{/green-fg}';
-    } else if (plugin.installedVersion) {
-      statusText = '{yellow-fg}● Installed (disabled){/yellow-fg}';
-    }
+      const plugins = pluginsByMarketplace.get(mp.name) || [];
+      const pluginInfo = plugins.length > 0
+        ? `{bold}Plugins:{/bold} ${plugins.length} available`
+        : '{gray-fg}Enable to see plugins{/gray-fg}';
 
-    let versionInfo = `{bold}Latest:{/bold} v${plugin.version}`;
-    if (plugin.installedVersion) {
-      versionInfo = `{bold}Installed:{/bold} v${plugin.installedVersion}\n{bold}Latest:{/bold} v${plugin.version}`;
-      if (plugin.hasUpdate) {
-        versionInfo += '\n{yellow-fg}⬆ Update available!{/yellow-fg}';
-      }
-    }
+      const actionText = item.marketplaceEnabled
+        ? '{red-fg}Press Enter to remove{/red-fg}'
+        : '{green-fg}Press Enter to add{/green-fg}';
 
-    let actions = '';
-    if (plugin.installedVersion) {
+      const content = `
+{bold}{cyan-fg}${mp.displayName}{/cyan-fg}{/bold}${mp.official ? ' {cyan-fg}[Official]{/cyan-fg}' : ''}
+
+${mp.description}
+
+{bold}Status:{/bold} ${statusText}
+${pluginInfo}
+
+{bold}Source:{/bold}
+{gray-fg}github.com/${mp.source.repo}{/gray-fg}
+
+${actionText}
+      `.trim();
+
+      detailBox.setContent(content);
+    } else if (item.type === 'plugin' && item.plugin) {
+      const plugin = item.plugin;
+
+      let statusText = '{gray-fg}Not installed{/gray-fg}';
       if (plugin.enabled) {
-        actions = '{cyan-fg}[Enter]{/cyan-fg} Disable';
-      } else {
-        actions = '{cyan-fg}[Enter]{/cyan-fg} Enable';
+        statusText = '{green-fg}● Enabled{/green-fg}';
+      } else if (plugin.installedVersion) {
+        statusText = '{yellow-fg}● Installed (disabled){/yellow-fg}';
       }
-      if (plugin.hasUpdate) {
-        actions += '  {green-fg}[u]{/green-fg} Update';
-      }
-      actions += '  {red-fg}[d]{/red-fg} Uninstall';
-    } else {
-      actions = '{green-fg}[Enter]{/green-fg} Install & Enable';
-    }
 
-    const content = `
+      let versionInfo = `{bold}Latest:{/bold} v${plugin.version}`;
+      if (plugin.installedVersion) {
+        versionInfo = `{bold}Installed:{/bold} v${plugin.installedVersion}\n{bold}Latest:{/bold} v${plugin.version}`;
+        if (plugin.hasUpdate) {
+          versionInfo += '\n{yellow-fg}⬆ Update available{/yellow-fg}';
+        }
+      }
+
+      let actions = '';
+      if (plugin.installedVersion) {
+        actions = plugin.enabled
+          ? '{cyan-fg}[Enter]{/cyan-fg} Disable'
+          : '{cyan-fg}[Enter]{/cyan-fg} Enable';
+        if (plugin.hasUpdate) {
+          actions += '  {green-fg}[u]{/green-fg} Update';
+        }
+        actions += '  {red-fg}[d]{/red-fg} Uninstall';
+      } else {
+        actions = '{green-fg}[Enter]{/green-fg} Install & Enable';
+      }
+
+      const content = `
 {bold}{cyan-fg}${plugin.name}{/cyan-fg}{/bold}
 
 ${plugin.description}
@@ -274,13 +217,14 @@ ${plugin.description}
 
 ${versionInfo}
 
-{bold}Marketplace:{/bold} ${plugin.marketplaceDisplay}
-{bold}Plugin ID:{/bold} ${plugin.id}
+{bold}ID:{/bold} ${plugin.id}
 
 ${actions}
-    `.trim();
+      `.trim();
 
-    detailBox.setContent(content);
+      detailBox.setContent(content);
+    }
+
     state.screen.render();
   };
 
@@ -290,77 +234,101 @@ ${actions}
   // Handle selection (Enter)
   list.on('select', async (_item: unknown, index: number) => {
     const selected = listItems[index];
-    if (!selected || selected.isHeader || !selected.plugin) {
-      return;
-    }
+    if (!selected || selected.type === 'empty') return;
 
-    const plugin = selected.plugin;
+    if (selected.type === 'marketplace' && selected.marketplace) {
+      const mp = selected.marketplace;
 
-    if (plugin.installedVersion) {
-      // Toggle enabled/disabled
-      const newState = !plugin.enabled;
-      await enablePlugin(plugin.id, newState, state.projectPath);
-      await showMessage(
-        state,
-        newState ? 'Enabled' : 'Disabled',
-        `${plugin.name} has been ${newState ? 'enabled' : 'disabled'}.\n\nRestart Claude Code to apply.`,
-        'success'
-      );
-      clearMarketplaceCache();
-      createPluginsScreen(state);
-    } else {
-      // Install plugin
-      await enablePlugin(plugin.id, true, state.projectPath);
-      await saveInstalledPluginVersion(plugin.id, plugin.version, state.projectPath);
-      await showMessage(
-        state,
-        'Installed',
-        `${plugin.name} v${plugin.version} has been installed and enabled.\n\nRestart Claude Code to apply.`,
-        'success'
-      );
-      clearMarketplaceCache();
-      createPluginsScreen(state);
+      if (selected.marketplaceEnabled) {
+        // Remove marketplace
+        const confirm = await showConfirm(
+          state,
+          `Remove ${mp.displayName}?`,
+          'Plugins from this marketplace will no longer be available.'
+        );
+
+        if (confirm) {
+          await removeMarketplace(mp.name, state.projectPath);
+          clearMarketplaceCache();
+          await showMessage(state, 'Removed', `${mp.displayName} removed.`, 'success');
+          createPluginsScreen(state);
+        }
+      } else {
+        // Add marketplace
+        await addMarketplace(mp, state.projectPath);
+        clearMarketplaceCache();
+        await showMessage(
+          state,
+          'Added',
+          `${mp.displayName} added.\nPlugins are now available below.`,
+          'success'
+        );
+        createPluginsScreen(state);
+      }
+    } else if (selected.type === 'plugin' && selected.plugin) {
+      const plugin = selected.plugin;
+
+      if (plugin.installedVersion) {
+        // Toggle enabled/disabled
+        const newState = !plugin.enabled;
+        await enablePlugin(plugin.id, newState, state.projectPath);
+        clearMarketplaceCache();
+        await showMessage(
+          state,
+          newState ? 'Enabled' : 'Disabled',
+          `${plugin.name} ${newState ? 'enabled' : 'disabled'}.\nRestart Claude Code to apply.`,
+          'success'
+        );
+        createPluginsScreen(state);
+      } else {
+        // Install plugin
+        await enablePlugin(plugin.id, true, state.projectPath);
+        await saveInstalledPluginVersion(plugin.id, plugin.version, state.projectPath);
+        clearMarketplaceCache();
+        await showMessage(
+          state,
+          'Installed',
+          `${plugin.name} v${plugin.version} installed.\nRestart Claude Code to apply.`,
+          'success'
+        );
+        createPluginsScreen(state);
+      }
     }
   });
 
-  // Update plugin (u key) - disabled during search
+  // Update plugin (u key)
   state.screen.key(['u'], async () => {
     if (state.isSearching) return;
     const selected = list.selected as number;
     const item = listItems[selected];
-    if (!item || item.isHeader || !item.plugin) return;
+    if (!item || item.type !== 'plugin' || !item.plugin) return;
 
     const plugin = item.plugin;
     if (!plugin.hasUpdate) {
-      await showMessage(state, 'No Update', `${plugin.name} is already at the latest version.`, 'info');
+      await showMessage(state, 'No Update', `${plugin.name} is at the latest version.`, 'info');
       return;
     }
 
     const confirm = await showConfirm(
       state,
       'Update Plugin?',
-      `Update ${plugin.name} from v${plugin.installedVersion} to v${plugin.version}?`
+      `Update ${plugin.name} to v${plugin.version}?`
     );
 
     if (confirm) {
       await saveInstalledPluginVersion(plugin.id, plugin.version, state.projectPath);
-      await showMessage(
-        state,
-        'Updated',
-        `${plugin.name} updated to v${plugin.version}.\n\nRestart Claude Code to apply.`,
-        'success'
-      );
       clearMarketplaceCache();
+      await showMessage(state, 'Updated', `${plugin.name} updated.\nRestart Claude Code to apply.`, 'success');
       createPluginsScreen(state);
     }
   });
 
-  // Uninstall plugin (d key) - disabled during search
+  // Uninstall plugin (d key)
   state.screen.key(['d'], async () => {
     if (state.isSearching) return;
     const selected = list.selected as number;
     const item = listItems[selected];
-    if (!item || item.isHeader || !item.plugin) return;
+    if (!item || item.type !== 'plugin' || !item.plugin) return;
 
     const plugin = item.plugin;
     if (!plugin.installedVersion) {
@@ -368,67 +336,69 @@ ${actions}
       return;
     }
 
-    const confirm = await showConfirm(
-      state,
-      'Uninstall Plugin?',
-      `Remove ${plugin.name} from this project?`
-    );
+    const confirm = await showConfirm(state, 'Uninstall?', `Remove ${plugin.name}?`);
 
     if (confirm) {
       await enablePlugin(plugin.id, false, state.projectPath);
       await removeInstalledPluginVersion(plugin.id, state.projectPath);
-      await showMessage(
-        state,
-        'Uninstalled',
-        `${plugin.name} has been removed.\n\nRestart Claude Code to apply.`,
-        'success'
-      );
       clearMarketplaceCache();
+      await showMessage(state, 'Uninstalled', `${plugin.name} removed.\nRestart Claude Code to apply.`, 'success');
       createPluginsScreen(state);
     }
   });
 
-  // Refresh (r key) - disabled during search
+  // Refresh (r key)
   state.screen.key(['r'], async () => {
     if (state.isSearching) return;
     clearMarketplaceCache();
     createPluginsScreen(state);
   });
 
-  // Update all (a key) - disabled during search
+  // Update all plugins (a key)
   state.screen.key(['a'], async () => {
     if (state.isSearching) return;
-    const updatable = plugins.filter((p) => p.hasUpdate);
+    const updatable = allPlugins.filter((p) => p.hasUpdate);
     if (updatable.length === 0) {
       await showMessage(state, 'All Up to Date', 'All plugins are at the latest version.', 'info');
       return;
     }
 
-    const confirm = await showConfirm(
-      state,
-      'Update All?',
-      `Update ${updatable.length} plugin(s) to latest versions?`
-    );
+    const confirm = await showConfirm(state, 'Update All?', `Update ${updatable.length} plugin(s)?`);
 
     if (confirm) {
       for (const plugin of updatable) {
         await saveInstalledPluginVersion(plugin.id, plugin.version, state.projectPath);
       }
-      await showMessage(
-        state,
-        'Updated',
-        `Updated ${updatable.length} plugin(s).\n\nRestart Claude Code to apply.`,
-        'success'
-      );
       clearMarketplaceCache();
+      await showMessage(state, 'Updated', `Updated ${updatable.length} plugin(s).\nRestart Claude Code to apply.`, 'success');
       createPluginsScreen(state);
     }
   });
 
-  createFooter(
-    state,
-    '↑↓ Navigate │ Enter Toggle │ u Update │ d Uninstall │ a Update All │ r Refresh │ q Back'
-  );
+  // Navigation
+  list.key(['j'], () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (list as any).down();
+    state.screen.render();
+  });
+  list.key(['k'], () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (list as any).up();
+    state.screen.render();
+  });
+
+  // Legend
+  blessed.box({
+    parent: state.screen,
+    bottom: 1,
+    right: 2,
+    width: 45,
+    height: 1,
+    content: '{green-fg}●{/green-fg} Enabled  {yellow-fg}●{/yellow-fg} Disabled  {gray-fg}○{/gray-fg} Not installed',
+    tags: true,
+  });
+
+  createFooter(state, '↑↓ Navigate │ Enter Toggle │ u Update │ d Uninstall │ a Update All │ r Refresh');
 
   list.focus();
   state.screen.render();

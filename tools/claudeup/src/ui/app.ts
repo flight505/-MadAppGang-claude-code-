@@ -2,7 +2,6 @@ import blessed from 'neo-blessed';
 import type { Screen } from '../types/index.js';
 import { createMainMenu } from './screens/main-menu.js';
 import { createMcpScreen } from './screens/mcp-setup.js';
-import { createMarketplaceScreen } from './screens/marketplace.js';
 import { createPluginsScreen } from './screens/plugins.js';
 import { createStatusLineScreen } from './screens/statusline.js';
 
@@ -56,7 +55,7 @@ export function createApp(): AppState {
 
   // Quick navigation keys - disabled during search or in sub-screens
   const isTopLevelScreen = (screen: Screen): boolean => {
-    return ['plugins', 'marketplace', 'mcp', 'statusline', 'cli-tools'].includes(screen);
+    return ['plugins', 'mcp', 'statusline', 'cli-tools'].includes(screen);
   };
 
   screen.key(['1'], () => {
@@ -65,17 +64,13 @@ export function createApp(): AppState {
   });
   screen.key(['2'], () => {
     if (state.isSearching || !isTopLevelScreen(state.currentScreen)) return;
-    navigateTo(state, 'marketplace');
+    navigateTo(state, 'mcp');
   });
   screen.key(['3'], () => {
     if (state.isSearching || !isTopLevelScreen(state.currentScreen)) return;
-    navigateTo(state, 'mcp');
-  });
-  screen.key(['4'], () => {
-    if (state.isSearching || !isTopLevelScreen(state.currentScreen)) return;
     navigateTo(state, 'statusline');
   });
-  screen.key(['5'], () => {
+  screen.key(['4'], () => {
     if (state.isSearching || !isTopLevelScreen(state.currentScreen)) return;
     navigateTo(state, 'cli-tools');
   });
@@ -131,9 +126,6 @@ export async function navigateTo(state: AppState, screen: Screen): Promise<void>
       const { createMcpRegistryScreen } = await import('./screens/mcp-registry.js');
       await createMcpRegistryScreen(state);
       break;
-    case 'marketplace':
-      await createMarketplaceScreen(state);
-      break;
     case 'plugins':
       await createPluginsScreen(state);
       break;
@@ -166,8 +158,8 @@ export function showHelp(state: AppState): void {
   {cyan-fg}?{/cyan-fg}              This help
 
 {bold}Quick Navigation{/bold}
-  {cyan-fg}1{/cyan-fg}  Plugins       {cyan-fg}3{/cyan-fg}  MCP Servers  {cyan-fg}5{/cyan-fg}  CLI Tools
-  {cyan-fg}2{/cyan-fg}  Marketplaces  {cyan-fg}4{/cyan-fg}  Status Line
+  {cyan-fg}1{/cyan-fg}  Plugins      {cyan-fg}3{/cyan-fg}  Status Line
+  {cyan-fg}2{/cyan-fg}  MCP Servers  {cyan-fg}4{/cyan-fg}  CLI Tools
 
 {bold}Plugin Actions{/bold}
   {cyan-fg}u{/cyan-fg}  Update        {cyan-fg}d{/cyan-fg}  Uninstall
@@ -429,10 +421,9 @@ export function createHeader(state: AppState, _title: string): blessed.BoxElemen
   // Navigation tabs
   const tabs = [
     { key: '1', label: 'Plugins', screen: 'plugins' as Screen },
-    { key: '2', label: 'Marketplaces', screen: 'marketplace' as Screen },
-    { key: '3', label: 'MCP', screen: 'mcp' as Screen },
-    { key: '4', label: 'Status', screen: 'statusline' as Screen },
-    { key: '5', label: 'Tools', screen: 'cli-tools' as Screen },
+    { key: '2', label: 'MCP', screen: 'mcp' as Screen },
+    { key: '3', label: 'Status', screen: 'statusline' as Screen },
+    { key: '4', label: 'Tools', screen: 'cli-tools' as Screen },
   ];
 
   const tabContent = tabs

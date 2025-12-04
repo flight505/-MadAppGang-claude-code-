@@ -5,12 +5,18 @@ import { hasClaudeDir } from '../../services/claude-settings.js';
 
 interface MenuItem {
   label: string;
-  screen: 'mcp' | 'marketplace' | 'plugins' | 'statusline';
+  screen: 'mcp' | 'plugins' | 'statusline' | 'cli-tools';
   description: string;
   icon: string;
 }
 
 const menuItems: MenuItem[] = [
+  {
+    label: 'Plugins & Marketplaces',
+    screen: 'plugins',
+    description: 'Manage plugin marketplaces and installed plugins',
+    icon: '📦',
+  },
   {
     label: 'MCP Servers',
     screen: 'mcp',
@@ -18,22 +24,16 @@ const menuItems: MenuItem[] = [
     icon: '🔌',
   },
   {
-    label: 'Plugin Marketplaces',
-    screen: 'marketplace',
-    description: 'Add official and community plugin marketplaces',
-    icon: '🏪',
-  },
-  {
-    label: 'Manage Plugins',
-    screen: 'plugins',
-    description: 'Install, update, and configure plugins',
-    icon: '📦',
-  },
-  {
     label: 'Status Line',
     screen: 'statusline',
     description: 'Configure status line display format',
     icon: '📊',
+  },
+  {
+    label: 'CLI Tools',
+    screen: 'cli-tools',
+    description: 'Install and update AI coding CLI tools',
+    icon: '🛠️',
   },
 ];
 
@@ -117,10 +117,10 @@ export async function createMainMenu(state: AppState): Promise<void> {
   });
 
   // Number key shortcuts
-  state.screen.key(['1'], () => navigateTo(state, 'mcp'));
-  state.screen.key(['2'], () => navigateTo(state, 'marketplace'));
-  state.screen.key(['3'], () => navigateTo(state, 'plugins'));
-  state.screen.key(['4'], () => navigateTo(state, 'statusline'));
+  state.screen.key(['1'], () => navigateTo(state, 'plugins'));
+  state.screen.key(['2'], () => navigateTo(state, 'mcp'));
+  state.screen.key(['3'], () => navigateTo(state, 'statusline'));
+  state.screen.key(['4'], () => navigateTo(state, 'cli-tools'));
 
   createFooter(state, '↑↓ Navigate | Enter Select | 1-4 Quick Jump | q Quit | ? Help');
 
