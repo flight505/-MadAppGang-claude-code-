@@ -6,7 +6,7 @@ import { createPluginsScreen } from './screens/plugins.js';
 import { createStatusLineScreen } from './screens/statusline.js';
 
 // Version from package.json
-export const VERSION = '0.4.0';
+export const VERSION = '0.4.2';
 
 export interface AppState {
   screen: blessed.Screen;

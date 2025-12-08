@@ -1,6 +1,6 @@
 import blessed from 'neo-blessed';
 import type { AppState } from '../app.js';
-import { createHeader, createFooter, showMessage, showConfirm, showLoading } from '../app.js';
+import { createHeader, createFooter, showMessage, showConfirm, showLoading, navigateTo } from '../app.js';
 import { defaultMarketplaces } from '../../data/marketplaces.js';
 import {
   addMarketplace,
@@ -310,7 +310,7 @@ ${actions}
             loading.stop();
           }
           await showMessage(state, 'Removed', `${mp.displayName} removed.`, 'success');
-          createPluginsScreen(state);
+          await navigateTo(state, 'plugins');
         }
       } else {
         // Add marketplace
@@ -330,7 +330,7 @@ ${actions}
           `${mp.displayName} added.\nPlugins are now available below.`,
           'success'
         );
-        createPluginsScreen(state);
+        await navigateTo(state, 'plugins');
       }
     } else if (selected.type === 'plugin' && selected.plugin) {
       const plugin = selected.plugin;
@@ -354,7 +354,7 @@ ${actions}
           `${plugin.name} ${newState ? 'enabled' : 'disabled'}.\nRestart Claude Code to apply.`,
           'success'
         );
-        createPluginsScreen(state);
+        await navigateTo(state, 'plugins');
       } else {
         // Install plugin
         const loading = showLoading(state, `Installing ${plugin.name}...`);
@@ -375,7 +375,7 @@ ${actions}
           `${plugin.name} v${plugin.version} installed.\nRestart Claude Code to apply.`,
           'success'
         );
-        createPluginsScreen(state);
+        await navigateTo(state, 'plugins');
       }
     }
   });
@@ -385,7 +385,7 @@ ${actions}
     if (state.isSearching) return;
     currentScope = currentScope === 'project' ? 'global' : 'project';
     currentSelection = 0; // Reset selection when scope changes
-    createPluginsScreen(state);
+    await navigateTo(state, 'plugins');
   });
 
   // Update plugin (u key)
@@ -419,7 +419,7 @@ ${actions}
         loading.stop();
       }
       await showMessage(state, 'Updated', `${plugin.name} updated.\nRestart Claude Code to apply.`, 'success');
-      createPluginsScreen(state);
+      await navigateTo(state, 'plugins');
     }
   });
 
@@ -451,7 +451,7 @@ ${actions}
         loading.stop();
       }
       await showMessage(state, 'Uninstalled', `${plugin.name} removed.\nRestart Claude Code to apply.`, 'success');
-      createPluginsScreen(state);
+      await navigateTo(state, 'plugins');
     }
   });
 
@@ -459,7 +459,7 @@ ${actions}
   list.key(['r'], async () => {
     if (state.isSearching) return;
     clearMarketplaceCache();
-    createPluginsScreen(state);
+    await navigateTo(state, 'plugins');
   });
 
   // Update all plugins (a key)
@@ -487,7 +487,7 @@ ${actions}
         loading.stop();
       }
       await showMessage(state, 'Updated', `Updated ${updatable.length} plugin(s).\nRestart Claude Code to apply.`, 'success');
-      createPluginsScreen(state);
+      await navigateTo(state, 'plugins');
     }
   });
 
