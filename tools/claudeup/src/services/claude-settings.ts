@@ -126,13 +126,18 @@ export async function addMcpServer(
   config: McpServerConfig,
   projectPath?: string
 ): Promise<void> {
-  // Add to .mcp.json
+  // Extract env vars from config - they go to settings.local.json, not .mcp.json
+  const envVars = config.env || {};
+  const configWithoutEnv: McpServerConfig = { ...config };
+  delete configWithoutEnv.env;
+
+  // Add to .mcp.json (without env vars)
   const mcpConfig = await readMcpConfig(projectPath);
   mcpConfig.mcpServers = mcpConfig.mcpServers || {};
-  mcpConfig.mcpServers[name] = config;
+  mcpConfig.mcpServers[name] = configWithoutEnv;
   await writeMcpConfig(mcpConfig, projectPath);
 
-  // Enable in settings.local.json
+  // Enable in settings.local.json and add env vars
   const localSettings = await readLocalSettings(projectPath);
   const enabledServers = localSettings.enabledMcpjsonServers || [];
   if (!enabledServers.includes(name)) {
@@ -140,6 +145,18 @@ export async function addMcpServer(
   }
   localSettings.enabledMcpjsonServers = enabledServers;
   localSettings.enableAllProjectMcpServers = true;
+
+  // Add env vars to settings.local.json
+  if (Object.keys(envVars).length > 0) {
+    localSettings.env = localSettings.env || {};
+    for (const [key, value] of Object.entries(envVars)) {
+      // Only add non-reference values (references like ${VAR} don't need to be stored)
+      if (!value.startsWith('${') || !value.endsWith('}')) {
+        localSettings.env[key] = value;
+      }
+    }
+  }
+
   await writeLocalSettings(localSettings, projectPath);
 }
 
@@ -268,6 +285,33 @@ export async function getInstalledMcpServers(
 ): Promise<Record<string, McpServerConfig>> {
   const mcpConfig = await readMcpConfig(projectPath);
   return mcpConfig.mcpServers || {};
+}
+
+// Get env vars for MCP servers (from settings.local.json)
+export async function getMcpEnvVars(projectPath?: string): Promise<Record<string, string>> {
+  const localSettings = await readLocalSettings(projectPath);
+  return localSettings.env || {};
+}
+
+// Set an env var for MCP servers (in settings.local.json)
+export async function setMcpEnvVar(
+  name: string,
+  value: string,
+  projectPath?: string
+): Promise<void> {
+  const localSettings = await readLocalSettings(projectPath);
+  localSettings.env = localSettings.env || {};
+  localSettings.env[name] = value;
+  await writeLocalSettings(localSettings, projectPath);
+}
+
+// Remove an env var (from settings.local.json)
+export async function removeMcpEnvVar(name: string, projectPath?: string): Promise<void> {
+  const localSettings = await readLocalSettings(projectPath);
+  if (localSettings.env) {
+    delete localSettings.env[name];
+    await writeLocalSettings(localSettings, projectPath);
+  }
 }
 
 // Get enabled MCP servers (all servers in .mcp.json are considered enabled)

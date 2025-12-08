@@ -6,7 +6,7 @@ import { createPluginsScreen } from './screens/plugins.js';
 import { createStatusLineScreen } from './screens/statusline.js';
 
 // Version from package.json
-export const VERSION = '0.3.1';
+export const VERSION = '0.4.0';
 
 export interface AppState {
   screen: blessed.Screen;
@@ -58,7 +58,7 @@ export function createApp(): AppState {
 
   // Quick navigation keys - disabled during search or in sub-screens
   const isTopLevelScreen = (screen: Screen): boolean => {
-    return ['plugins', 'mcp', 'statusline', 'cli-tools'].includes(screen);
+    return ['plugins', 'mcp', 'statusline', 'env-vars', 'cli-tools'].includes(screen);
   };
 
   screen.key(['1'], () => {
@@ -74,6 +74,10 @@ export function createApp(): AppState {
     navigateTo(state, 'statusline');
   });
   screen.key(['4'], () => {
+    if (state.isSearching || !isTopLevelScreen(state.currentScreen)) return;
+    navigateTo(state, 'env-vars');
+  });
+  screen.key(['5'], () => {
     if (state.isSearching || !isTopLevelScreen(state.currentScreen)) return;
     navigateTo(state, 'cli-tools');
   });
@@ -135,6 +139,10 @@ export async function navigateTo(state: AppState, screen: Screen): Promise<void>
     case 'statusline':
       await createStatusLineScreen(state);
       break;
+    case 'env-vars':
+      const { createEnvVarsScreen } = await import('./screens/env-vars.js');
+      await createEnvVarsScreen(state);
+      break;
     case 'cli-tools':
       const { createCliToolsScreen } = await import('./screens/cli-tools.js');
       await createCliToolsScreen(state);
@@ -161,8 +169,9 @@ export function showHelp(state: AppState): void {
   {cyan-fg}?{/cyan-fg}              This help
 
 {bold}Quick Navigation{/bold}
-  {cyan-fg}1{/cyan-fg}  Plugins      {cyan-fg}3{/cyan-fg}  Status Line
-  {cyan-fg}2{/cyan-fg}  MCP Servers  {cyan-fg}4{/cyan-fg}  CLI Tools
+  {cyan-fg}1{/cyan-fg}  Plugins      {cyan-fg}4{/cyan-fg}  Env Vars
+  {cyan-fg}2{/cyan-fg}  MCP Servers  {cyan-fg}5{/cyan-fg}  CLI Tools
+  {cyan-fg}3{/cyan-fg}  Status Line
 
 {bold}Plugin Actions{/bold}
   {cyan-fg}u{/cyan-fg}  Update        {cyan-fg}d{/cyan-fg}  Uninstall
@@ -598,7 +607,8 @@ export function createHeader(state: AppState, _title: string): blessed.BoxElemen
     { key: '1', label: 'Plugins', screen: 'plugins' as Screen },
     { key: '2', label: 'MCP', screen: 'mcp' as Screen },
     { key: '3', label: 'Status', screen: 'statusline' as Screen },
-    { key: '4', label: 'Tools', screen: 'cli-tools' as Screen },
+    { key: '4', label: 'Env', screen: 'env-vars' as Screen },
+    { key: '5', label: 'Tools', screen: 'cli-tools' as Screen },
   ];
 
   const tabContent = tabs

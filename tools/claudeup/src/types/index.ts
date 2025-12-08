@@ -80,9 +80,10 @@ export interface ClaudeLocalSettings extends ClaudeSettings {
   allowMcp?: boolean;
   enabledMcpjsonServers?: string[];
   enableAllProjectMcpServers?: boolean;
+  env?: Record<string, string>;
 }
 
-export type Screen = 'main' | 'mcp' | 'mcp-registry' | 'plugins' | 'statusline' | 'cli-tools';
+export type Screen = 'main' | 'mcp' | 'mcp-registry' | 'plugins' | 'statusline' | 'cli-tools' | 'env-vars';
 
 // MCP Registry Types (registry.modelcontextprotocol.io)
 export interface McpRegistryServer {
