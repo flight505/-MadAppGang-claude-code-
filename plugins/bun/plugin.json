@@ -31,7 +31,8 @@
 	"commands": [
 		"./commands/implement-api.md",
 		"./commands/setup-project.md",
-		"./commands/apidog.md"
+		"./commands/apidog.md",
+		"./commands/help.md"
 	],
 	"skills": [
 		"./skills/best-practices"

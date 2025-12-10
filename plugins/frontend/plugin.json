@@ -39,7 +39,8 @@
 		"./commands/api-docs.md",
 		"./commands/cleanup-artifacts.md",
 		"./commands/validate-ui.md",
-		"./commands/review.md"
+		"./commands/review.md",
+		"./commands/help.md"
 	],
 	"skills": [
 		"./skills/core-principles",

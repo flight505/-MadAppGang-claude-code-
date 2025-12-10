@@ -30,6 +30,10 @@
     "error-recovery"
   ],
 
+  "commands": [
+    "./commands/help.md"
+  ],
+
   "skillBundles": {
     "core": ["multi-agent-coordination", "quality-gates"],
     "advanced": ["multi-model-validation", "error-recovery"],

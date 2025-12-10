@@ -23,7 +23,8 @@
 		"./agents/codebase-detective.md"
 	],
 	"commands": [
-		"./commands/analyze.md"
+		"./commands/analyze.md",
+		"./commands/help.md"
 	],
 	"skills": [
 		"./skills/deep-analysis",
