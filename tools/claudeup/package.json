@@ -1,6 +1,6 @@
 {
   "name": "claudeup",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "TUI tool for managing Claude Code plugins, MCPs, and configuration",
   "type": "module",
   "main": "dist/index.js",
@@ -30,8 +30,12 @@
     "tui",
     "cli"
   ],
-  "author": "GitHub Inc.",
+  "author": "Jack Rudenko <i@madappgang.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MadAppGang/claude-code"
+  },
   "bugs": {
     "url": "https://github.com/MadAppGang/claude-code/issues"
   },
