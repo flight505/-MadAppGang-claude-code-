@@ -1,7 +1,7 @@
 {
 	"name": "code-analysis",
-	"version": "2.2.0",
-	"description": "Deep code investigation using INDEXED MEMORY (claudemem). GREP/FIND FORBIDDEN. Features auto-triggering skills with interception patterns (v2.2.0). NEW: search-interceptor skill prevents multi-file Read/Glob. Anti-pattern detection for tool familiarity bias.",
+	"version": "2.3.0",
+	"description": "Deep code investigation with ENFORCED claudemem semantic search. PreToolUse hooks intercept Grep/Bash/Glob/Read and replace with claudemem. Zero context overhead enforcement.",
 	"author": {
 		"name": "Jack Rudenko",
 		"email": "i@madappgang.com",
@@ -19,19 +19,68 @@
 		"code-navigation",
 		"semantic-search",
 		"claudemem",
-		"architect",
-		"developer",
-		"tester",
-		"debugger",
-		"ultrathink"
+		"hooks",
+		"interception",
+		"enforcement"
 	],
 	"category": "development",
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"matcher": "Grep",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/intercept-grep.sh"
+					}
+				]
+			},
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/intercept-bash.sh"
+					}
+				]
+			},
+			{
+				"matcher": "Glob",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/intercept-glob.sh"
+					}
+				]
+			},
+			{
+				"matcher": "Read",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/intercept-read.sh"
+					}
+				]
+			}
+		]
+	},
 	"agents": [
 		"./agents/codebase-detective.md"
 	],
 	"commands": [
 		"./commands/analyze.md",
-		"./commands/help.md"
+		"./commands/help.md",
+		"./commands/setup.md"
 	],
 	"skills": [
 		"./skills/deep-analysis",

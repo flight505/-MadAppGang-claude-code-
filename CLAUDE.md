@@ -38,12 +38,16 @@ A complete Claude Code plugin marketplace with enterprise-level architecture:
   - CSS architecture management with knowledge files
   - Pixel-perfect UI implementation with parallel design validation
   - Task decomposition for isolated, parallel implementation
-- **Code Analysis Plugin** (v2.2.0) - Deep codebase investigation using INDEXED MEMORY
-  - 1 Specialized Agent (codebase-detective) - GREP/FIND FORBIDDEN
-  - 11 Skills (6 role-based detective + deep-analysis + claudemem-search + claudish-usage + code-search-selector + search-interceptor)
-  - **Auto-Triggering Skills** (NEW in v2.2.0) - Skills auto-invoke on keywords like "audit", "investigate", "how does X work"
-  - **Search Interceptor** (NEW in v2.2.0) - Prevents multi-file Read/Glob, redirects to semantic search
-  - **Anti-Pattern Detection** - Blocks tool familiarity bias toward Read/Glob
+- **Code Analysis Plugin** (v2.3.0) - Deep codebase investigation with ENFORCED claudemem
+  - 1 Specialized Agent (codebase-detective)
+  - 11 Skills + 5 PreToolUse Hooks + 1 SessionStart Hook
+  - **PreToolUse Hooks** (NEW in v2.3.0) - Automatically intercept Grep/Bash/Glob/Read
+    - Grep → BLOCKED, replaced with claudemem search results
+    - Bash grep/rg/find → BLOCKED, replaced with claudemem search
+    - Glob (broad patterns) → WARNING, suggests claudemem
+    - Read (3+ files) → WARNING, suggests claudemem
+  - **Zero Context Overhead** - Hooks run externally, don't consume tokens
+  - **`/setup` Command** - Inject enforcement rules into project CLAUDE.md
   - Local semantic code search with claudemem CLI (Tree-sitter + OpenRouter + LanceDB)
 - **Bun Backend Plugin** (v1.5.2) - Production-ready TypeScript backend with Bun
   - 3 Specialized Agents (backend-developer + api-architect + apidog)
@@ -712,7 +716,7 @@ Include marketplace in project settings (requires folder trust):
 **5 Complete Plugins:**
 1. **Orchestration** (v0.3.0) - 5 skills - Shared multi-agent coordination patterns with LLM performance tracking
 2. **Frontend** (v3.13.0) - 11 agents, 7 commands, 11 skills - Full-featured with LLM performance tracking
-3. **Code Analysis** (v2.2.0) - 1 agent, 2 commands, 11 skills - Auto-triggering skills with interception patterns
+3. **Code Analysis** (v2.3.0) - 1 agent, 3 commands, 11 skills, 5 hooks - ENFORCED claudemem via PreToolUse hooks
 4. **Bun Backend** (v1.5.2) - 3 agents, 3 commands, 1 skill - Production TypeScript backend with Bun
 5. **Agent Development** (v1.1.0) - 3 agents, 1 command, 3 skills - Create Claude Code agents with LLM performance tracking
 
@@ -768,26 +772,30 @@ Include marketplace in project settings (requires folder trust):
 **Current Versions:**
 - Orchestration Plugin: **v0.3.0** (2025-12-12)
 - Frontend Plugin: **v3.13.0** (2025-12-14)
-- Code Analysis Plugin: **v2.2.0** (2025-12-14)
+- Code Analysis Plugin: **v2.3.0** (2025-12-14)
 - Bun Backend Plugin: **v1.5.2** (2025-11-26)
 - Agent Development Plugin: **v1.1.0** (2025-12-09)
 - Claudish CLI: See https://github.com/MadAppGang/claudish (separate repository)
 
-**Latest Changes (Code Analysis v2.2.0 - Auto-Triggering Skills):**
-- ✅ **Auto-Invocation Triggers**: Skills auto-invoke on keywords ("audit", "investigate", "how does X work")
-- ✅ **NEW: search-interceptor skill**: Intercepts multi-file Read/Glob operations, redirects to semantic search
-- ✅ **Anti-Pattern Detection**: Explicit warnings for tool familiarity bias patterns
-- ✅ **Prerequisites System**: deep-analysis skill now requires code-search-selector first
-- ✅ **Updated Skills**:
-  - code-search-selector - Auto-invoke triggers + interception patterns
-  - claudemem-search - Anti-pattern section with correct workflow
-  - deep-analysis - Prerequisites section + updated quick reference
-- ✅ **Addresses Real-World Failure**: Based on analysis where model used grep despite indexed memory
+**Latest Changes (Code Analysis v2.3.0 - PreToolUse Hook Enforcement):**
+- ✅ **PreToolUse Hooks**: Automatically intercept search tools with zero context overhead
+  - `intercept-grep.sh` - Blocks Grep, returns claudemem results
+  - `intercept-bash.sh` - Blocks bash grep/rg/find, returns claudemem results
+  - `intercept-glob.sh` - Warns on broad patterns, suggests claudemem
+  - `intercept-read.sh` - Warns on 3+ sequential reads, suggests claudemem
+- ✅ **SessionStart Hook**: Checks claudemem status at session start
+- ✅ **`/setup` Command**: Inject enforcement rules into project CLAUDE.md
+- ✅ **Zero Context Overhead**: Hooks run externally, don't consume tokens
+- ✅ **Transparent Replacement**: Claude calls Grep, gets claudemem results automatically
+
+**Previous Changes (Code Analysis v2.2.0 - Auto-Triggering Skills):**
+- ✅ Auto-invocation triggers on keywords ("audit", "investigate", "how does X work")
+- ✅ search-interceptor skill for multi-file Read/Glob detection
+- ✅ Anti-pattern detection for tool familiarity bias
 
 **Previous Changes (Code Analysis v2.1.0 - Tool Selection Rules):**
 - ✅ Explicit tool selection rules in codebase-detective agent
 - ✅ code-search-selector skill with decision tree
-- ✅ Trigger keywords in all detective skill descriptions
 
 **Previous Changes (Multi-Model Validation v0.3.0 & Detective v1.4.0):**
 - ✅ Dynamic model discovery via `claudish --top-models` and `claudish --free`
