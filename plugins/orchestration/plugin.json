@@ -1,7 +1,7 @@
 {
   "name": "orchestration",
-  "version": "0.4.0",
-  "description": "Shared multi-agent coordination and workflow orchestration patterns for complex Claude Code workflows. Provides proven patterns for parallel execution, multi-model validation with dynamic model discovery, session-based workspaces, free model support, quality gates, and phase-based orchestration. NEW in v0.4.0: SessionStart hook for claudish status, /setup command for CLAUDE.md injection, 4-Message Pattern enforcement.",
+  "version": "0.5.0",
+  "description": "Shared multi-agent coordination and workflow orchestration patterns for complex Claude Code workflows. Provides proven patterns for parallel execution, multi-model validation with dynamic model discovery, session-based workspaces, free model support, quality gates, and phase-based orchestration. NEW in v0.5.0: SubagentStop hook enforces statistics collection, MANDATORY checklist in multi-model-validation skill, timing instrumentation examples.",
   "author": "MadAppGang",
   "license": "MIT",
   "homepage": "https://github.com/MadAppGang/claude-code",
@@ -37,6 +37,16 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-statistics.sh"
           }
         ]
       }

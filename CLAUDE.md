@@ -59,17 +59,18 @@ A complete Claude Code plugin marketplace with enterprise-level architecture:
   - Apidog integration for API documentation synchronization
   - Clean architecture (routes → controllers → services → repositories)
   - Full-stack TypeScript consistency
-- **Orchestration Plugin** (v0.4.0) - Shared multi-agent coordination patterns with LLM performance tracking
+- **Orchestration Plugin** (v0.5.0) - Shared multi-agent coordination patterns with ENFORCED LLM performance tracking
   - **5 Specialized Skills** (shared orchestration knowledge):
     - **multi-agent-coordination** - Parallel vs sequential execution, agent selection, sub-agent delegation
-    - **multi-model-validation** - 4-Message Pattern, Claudish proxy, consensus analysis, 3-5x speedup, **Pattern 7: Statistics Collection**
+    - **multi-model-validation** - 4-Message Pattern, Claudish proxy, consensus analysis, 3-5x speedup, **MANDATORY Statistics Checklist** (NEW in v0.5.0)
     - **quality-gates** - User approval, iteration loops, TDD pattern, severity classification
     - **todowrite-orchestration** - Phase tracking, real-time progress, workflow management
     - **error-recovery** - Timeout, API failures, partial success, retry strategies, graceful degradation
-  - **SessionStart Hook** (NEW in v0.4.0) - Checks claudish installation and API key at session start
-  - **`/setup` Command** (NEW in v0.4.0) - Inject 4-Message Pattern rules into project CLAUDE.md
+  - **SubagentStop Hook** (NEW in v0.5.0) - Enforces statistics collection, warns if multi-model review is incomplete
+  - **SessionStart Hook** - Checks claudish installation and API key at session start
+  - **`/setup` Command** - Inject 4-Message Pattern rules into project CLAUDE.md
   - **LLM Performance Tracking** - Track model execution times, quality scores, and recommendations to `ai-docs/llm-performance.json`
-  - **Skills-only architecture** - Pure knowledge plugin (2 commands + 5 skills)
+  - **Skills-only architecture** - Pure knowledge plugin (2 commands + 5 skills + 2 hooks)
   - **Skill bundles** - core, advanced, testing, complete
   - **Context-efficient** - Load only needed skills (vs monolithic)
   - **Dependency model** - Auto-installs with plugins that need orchestration
@@ -716,7 +717,7 @@ Include marketplace in project settings (requires folder trust):
 ✅ **Production Ready**
 
 **5 Complete Plugins:**
-1. **Orchestration** (v0.4.0) - 5 skills, 2 commands, 1 hook - Shared multi-agent coordination patterns with SessionStart hook
+1. **Orchestration** (v0.5.0) - 5 skills, 2 commands, 2 hooks - Shared multi-agent coordination patterns with ENFORCED statistics
 2. **Frontend** (v3.13.0) - 11 agents, 7 commands, 11 skills - Full-featured with LLM performance tracking
 3. **Code Analysis** (v2.3.0) - 1 agent, 3 commands, 11 skills, 5 hooks - ENFORCED claudemem via PreToolUse hooks
 4. **Bun Backend** (v1.5.2) - 3 agents, 3 commands, 1 skill - Production TypeScript backend with Bun
@@ -772,14 +773,23 @@ Include marketplace in project settings (requires folder trust):
 **Detailed Release Notes:** See [RELEASES.md](./RELEASES.md) for comprehensive release documentation
 
 **Current Versions:**
-- Orchestration Plugin: **v0.4.0** (2025-12-14)
+- Orchestration Plugin: **v0.5.0** (2025-12-14)
 - Frontend Plugin: **v3.13.0** (2025-12-14)
 - Code Analysis Plugin: **v2.3.0** (2025-12-14)
 - Bun Backend Plugin: **v1.5.2** (2025-11-26)
 - Agent Development Plugin: **v1.1.0** (2025-12-09)
 - Claudish CLI: See https://github.com/MadAppGang/claudish (separate repository)
 
-**Latest Changes (Orchestration v0.4.0 - SessionStart Hook & CLAUDE.md Injection):**
+**Latest Changes (Orchestration v0.5.0 - Statistics Enforcement):**
+- ✅ **SubagentStop Hook**: Automatically detects multi-model validation and warns if statistics weren't collected
+- ✅ **MANDATORY Statistics Checklist**: 6-step checklist in skill prevents incomplete reviews
+- ✅ **Timing Instrumentation Examples**: Pre-flight checklist, per-model timing, bash associative arrays
+- ✅ **Required Output Template**: Standardized performance table format
+- ✅ **Verification Script**: `verify_statistics_complete()` function to check before presenting results
+- ✅ **Common Mistakes Table**: Quick reference for debugging timing issues
+- ✅ **Based on Real Feedback**: Addressed actual agent failures in production use
+
+**Previous Changes (Orchestration v0.4.0 - SessionStart Hook & CLAUDE.md Injection):**
 - ✅ **SessionStart Hook**: Check claudish installation and OpenRouter API key at session start
 - ✅ **`/setup` Command**: Inject 4-Message Pattern enforcement rules into project CLAUDE.md
 - ✅ **CLAUDE.md Template**: Comprehensive rules for multi-model parallel execution
@@ -856,7 +866,7 @@ Include marketplace in project settings (requires folder trust):
 - ✅ **6,774 lines** of comprehensive orchestration knowledge
 
 **Git Tags:**
-- Orchestration: `plugins/orchestration/v0.4.0`
+- Orchestration: `plugins/orchestration/v0.5.0`
 - Frontend: `plugins/frontend/v3.13.0`
 - Bun: `plugins/bun/v1.5.2`
 - Code Analysis: `plugins/code-analysis/v2.3.0`
@@ -875,5 +885,5 @@ Missing any of these will cause claudeup to not see the update!
 
 **Maintained by:** Jack Rudenko @ MadAppGang
 **Last Updated:** December 14, 2025
-**Version:** 5 plugins (Orchestration v0.4.0, Frontend v3.13.0, Code Analysis v2.3.0, Bun Backend v1.5.2, Agent Development v1.1.0)
+**Version:** 5 plugins (Orchestration v0.5.0, Frontend v3.13.0, Code Analysis v2.3.0, Bun Backend v1.5.2, Agent Development v1.1.0)
 - do not use hardcoded path in code, docs, comments or any other files

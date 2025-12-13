@@ -1,14 +1,14 @@
 ---
 name: multi-model-validation
-description: Run multiple AI models in parallel for 3-5x speedup with performance statistics tracking. Use when validating with Grok, Gemini, GPT-5, DeepSeek, or Claudish proxy for code review, consensus analysis, or multi-expert validation. Includes dynamic model discovery via `claudish --top-models` and `claudish --free`, session-based workspaces, and Pattern 7-8 for tracking model performance and generating data-driven recommendations. Trigger keywords - "grok", "gemini", "gpt-5", "deepseek", "claudish", "multiple models", "parallel review", "external AI", "consensus", "multi-model", "model performance", "statistics", "free models".
-version: 3.0.0
-tags: [orchestration, claudish, parallel, consensus, multi-model, grok, gemini, external-ai, statistics, performance, free-models]
-keywords: [grok, gemini, gpt-5, deepseek, claudish, parallel, consensus, multi-model, external-ai, proxy, openrouter, statistics, performance, quality-score, execution-time, free-models, top-models]
+description: Run multiple AI models in parallel for 3-5x speedup with ENFORCED performance statistics tracking. Use when validating with Grok, Gemini, GPT-5, DeepSeek, or Claudish proxy for code review, consensus analysis, or multi-expert validation. NEW in v3.1.0 - SubagentStop hook enforces statistics collection, MANDATORY checklist prevents incomplete reviews, timing instrumentation examples. Includes dynamic model discovery via `claudish --top-models` and `claudish --free`, session-based workspaces, and Pattern 7-8 for tracking model performance. Trigger keywords - "grok", "gemini", "gpt-5", "deepseek", "claudish", "multiple models", "parallel review", "external AI", "consensus", "multi-model", "model performance", "statistics", "free models".
+version: 3.1.0
+tags: [orchestration, claudish, parallel, consensus, multi-model, grok, gemini, external-ai, statistics, performance, free-models, enforcement]
+keywords: [grok, gemini, gpt-5, deepseek, claudish, parallel, consensus, multi-model, external-ai, proxy, openrouter, statistics, performance, quality-score, execution-time, free-models, top-models, enforcement, mandatory, checklist]
 ---
 
 # Multi-Model Validation
 
-**Version:** 3.0.0
+**Version:** 3.1.0
 **Purpose:** Patterns for running multiple AI models in parallel via Claudish proxy with dynamic model discovery, session-based workspaces, and performance statistics
 **Status:** Production Ready
 
@@ -1902,6 +1902,224 @@ Solution: Use range-based estimates, bias toward high end
 
 ---
 
+## ⚠️ MANDATORY: Statistics Collection Checklist
+
+**Statistics are NOT optional.** The multi-model validation is INCOMPLETE without performance tracking.
+
+### Why This Matters
+
+Real-world feedback showed that agents often:
+- ❌ Forget to instrument timing
+- ❌ Skip statistics because Task tool doesn't return timing
+- ❌ Get caught up in execution and forget the statistics phase
+- ❌ Present results without performance data
+
+**This checklist prevents those failures.**
+
+### Pre-Flight Checklist (Before Launching Models)
+
+```bash
+# 1. Record session start time (REQUIRED)
+SESSION_START=$(date +%s)
+echo "Session started at: $SESSION_START"
+
+# 2. Create timing tracker file in session directory
+echo "{}" > "$SESSION_DIR/timing.json"
+
+# 3. Initialize per-model start times array
+declare -A MODEL_START_TIMES
+```
+
+### Per-Model Timing (During Execution)
+
+**CRITICAL:** Record start time BEFORE launching each model:
+
+```bash
+# Before launching each Task
+MODEL_START_TIMES["claude-embedded"]=$(date +%s)
+MODEL_START_TIMES["x-ai/grok-code-fast-1"]=$(date +%s)
+MODEL_START_TIMES["qwen/qwen3-coder:free"]=$(date +%s)
+
+# After each TaskOutput returns, calculate duration
+model_completed() {
+  local model="$1"
+  local status="$2"
+  local issues="${3:-0}"
+  local quality="${4:-}"
+
+  local end_time=$(date +%s)
+  local start_time="${MODEL_START_TIMES[$model]}"
+  local duration=$((end_time - start_time))
+
+  echo "Model $model completed in ${duration}s"
+
+  # Track immediately (don't wait until end)
+  track_model_performance "$model" "$status" "$duration" "$issues" "$quality"
+}
+
+# Call when each model completes
+model_completed "claude-embedded" "success" 8 95
+model_completed "x-ai/grok-code-fast-1" "success" 6 87
+```
+
+### Post-Consolidation Checklist (MANDATORY)
+
+Before presenting results to user, you **MUST** complete ALL of these:
+
+```
+□ 1. Calculate duration for EACH model
+      DURATION=$((END_TIME - START_TIME))
+
+□ 2. Call track_model_performance() for EACH model
+      track_model_performance "model-id" "status" duration issues quality cost is_free
+
+□ 3. Calculate parallel vs sequential times
+      PARALLEL_TIME=$(max of all durations)
+      SEQUENTIAL_TIME=$(sum of all durations)
+      SPEEDUP=$(echo "scale=1; $SEQUENTIAL_TIME / $PARALLEL_TIME" | bc)
+
+□ 4. Call record_session_stats()
+      record_session_stats $TOTAL $SUCCESS $FAILED $PARALLEL_TIME $SEQUENTIAL_TIME $SPEEDUP $COST $FREE_COUNT
+
+□ 5. Verify ai-docs/llm-performance.json was updated
+      [ -f "ai-docs/llm-performance.json" ] && echo "✓ Stats saved"
+
+□ 6. Display performance table (see template below)
+```
+
+**FAILURE TO COMPLETE ALL 6 STEPS = INCOMPLETE REVIEW**
+
+### Complete Timing Example
+
+```bash
+#!/bin/bash
+# Full timing instrumentation example
+
+# === PRE-FLIGHT ===
+SESSION_START=$(date +%s)
+declare -A MODEL_START_TIMES
+declare -A MODEL_END_TIMES
+declare -A MODEL_DURATIONS
+
+# === LAUNCH PHASE ===
+# Record start times BEFORE launching Tasks
+MODEL_START_TIMES["claude-embedded"]=$SESSION_START
+MODEL_START_TIMES["x-ai/grok-code-fast-1"]=$SESSION_START
+MODEL_START_TIMES["qwen/qwen3-coder:free"]=$SESSION_START
+
+# Launch all Tasks in parallel (Message 2)
+# ... Task calls here ...
+
+# === COMPLETION PHASE ===
+# After TaskOutput returns for each model
+record_completion() {
+  local model="$1"
+  MODEL_END_TIMES["$model"]=$(date +%s)
+  MODEL_DURATIONS["$model"]=$((MODEL_END_TIMES["$model"] - MODEL_START_TIMES["$model"]))
+}
+
+# Call as each completes
+record_completion "claude-embedded"
+record_completion "x-ai/grok-code-fast-1"
+record_completion "qwen/qwen3-coder:free"
+
+# === STATISTICS PHASE ===
+# Calculate totals
+PARALLEL_TIME=0
+SEQUENTIAL_TIME=0
+for model in "${!MODEL_DURATIONS[@]}"; do
+  duration="${MODEL_DURATIONS[$model]}"
+  SEQUENTIAL_TIME=$((SEQUENTIAL_TIME + duration))
+  if [ "$duration" -gt "$PARALLEL_TIME" ]; then
+    PARALLEL_TIME=$duration
+  fi
+done
+SPEEDUP=$(echo "scale=1; $SEQUENTIAL_TIME / $PARALLEL_TIME" | bc)
+
+# Track each model
+track_model_performance "claude-embedded" "success" "${MODEL_DURATIONS[claude-embedded]}" 8 95 0 true
+track_model_performance "x-ai/grok-code-fast-1" "success" "${MODEL_DURATIONS[x-ai/grok-code-fast-1]}" 6 87 0.002 false
+track_model_performance "qwen/qwen3-coder:free" "success" "${MODEL_DURATIONS[qwen/qwen3-coder:free]}" 5 82 0 true
+
+# Record session
+record_session_stats 3 3 0 $PARALLEL_TIME $SEQUENTIAL_TIME $SPEEDUP 0.002 2
+
+echo "Statistics collection complete!"
+```
+
+### Required Output Template
+
+Your final message to the user **MUST** include this table:
+
+```markdown
+## Model Performance (This Session)
+
+| Model                     | Time  | Issues | Quality | Cost   | Status |
+|---------------------------|-------|--------|---------|--------|--------|
+| claude-embedded           | 32s   | 8      | 95%     | FREE   | ✅     |
+| x-ai/grok-code-fast-1     | 45s   | 6      | 87%     | $0.002 | ✅     |
+| qwen/qwen3-coder:free     | 52s   | 5      | 82%     | FREE   | ✅     |
+
+## Session Statistics
+
+- **Parallel Time:** 52s (slowest model)
+- **Sequential Time:** 129s (sum of all)
+- **Speedup:** 2.5x
+- **Total Cost:** $0.002
+- **Free Models Used:** 2/3
+
+✓ Performance logged to `ai-docs/llm-performance.json`
+```
+
+### Verification Before Presenting
+
+Run this check before your final message:
+
+```bash
+verify_statistics_complete() {
+  local errors=0
+
+  # Check file exists
+  if [ ! -f "ai-docs/llm-performance.json" ]; then
+    echo "ERROR: ai-docs/llm-performance.json not found"
+    errors=$((errors + 1))
+  fi
+
+  # Check session was recorded
+  if ! jq -e '.sessions[0]' ai-docs/llm-performance.json >/dev/null 2>&1; then
+    echo "ERROR: No session recorded"
+    errors=$((errors + 1))
+  fi
+
+  # Check models were tracked
+  local model_count=$(jq '.models | length' ai-docs/llm-performance.json)
+  if [ "$model_count" -eq 0 ]; then
+    echo "ERROR: No models tracked"
+    errors=$((errors + 1))
+  fi
+
+  if [ "$errors" -gt 0 ]; then
+    echo "STATISTICS INCOMPLETE - $errors errors found"
+    return 1
+  fi
+
+  echo "✓ Statistics verification passed"
+  return 0
+}
+```
+
+### Common Mistakes and Fixes
+
+| Mistake | Fix |
+|---------|-----|
+| "I'll track timing later" | Record start time BEFORE launching |
+| "Task tool doesn't return timing" | Use bash timestamps around Task calls |
+| "Too complex with parallel agents" | Use associative arrays for per-model times |
+| "Forgot to call track_model_performance" | Add to checklist, verify file updated |
+| "Presented results without table" | Use required output template |
+
+---
+
 ## Summary
 
 Multi-model validation achieves 3-5x speedup and consensus-based prioritization through:
@@ -1917,6 +2135,15 @@ Multi-model validation achieves 3-5x speedup and consensus-based prioritization 
 - **Pattern 8: Data-Driven Selection** (NEW v3.0) - Intelligent model recommendations
 
 Master this skill and you can validate any implementation with multiple AI perspectives in minutes, while continuously improving your model shortlist based on actual performance data.
+
+**Version 3.1.0 Additions:**
+- **MANDATORY Statistics Collection Checklist** - Prevents incomplete reviews
+- **SubagentStop Hook** - Automatically reminds when statistics weren't collected
+- **Pre-Flight Checklist** - Record SESSION_START, initialize timing arrays
+- **Per-Model Timing Examples** - Bash associative arrays for tracking durations
+- **Required Output Template** - Standardized performance table format
+- **Verification Script** - `verify_statistics_complete()` function
+- **Common Mistakes Table** - Quick reference for debugging
 
 **Version 3.0 Additions:**
 - **Pattern 0: Session Setup and Model Discovery**
