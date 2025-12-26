@@ -92,9 +92,10 @@ get_url_inspection({
 
 **Repository**: https://github.com/seranking/seo-data-api-mcp-server
 
-**Installation** (via claudeup - recommended):
+**Installation** (via claudeup TUI - recommended):
 ```bash
-claudeup install seo-data-api-mcp-server
+npx claudeup
+# Navigate to: MCP Server Setup → SEO & Analytics → se-ranking
 ```
 
 **Manual Installation**:

@@ -1,6 +1,6 @@
 {
   "_comment": "Copy this to mcp-config.json and configure your credentials",
-  "_claudeup": "RECOMMENDED: Use 'claudeup install <server-name>' for easy setup",
+  "_claudeup": "RECOMMENDED: Run 'npx claudeup' and navigate to SEO & Analytics",
 
   "google-analytics": {
     "command": "npx",

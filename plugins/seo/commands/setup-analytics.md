@@ -52,25 +52,31 @@ allowed-tools: Bash, AskUserQuestion, Read, Write
   <claudeup_quick_setup>
     **RECOMMENDED: Use claudeup for Easy MCP Server Setup**
 
-    claudeup is the easiest way to install and configure MCP servers:
+    claudeup is a TUI (Text User Interface) tool for managing Claude Code MCP servers:
 
     ```bash
-    # Install all SEO analytics MCP servers
-    claudeup install mcp-server-google-analytics
-    claudeup install mcp-server-gsc
-    claudeup install seo-data-api-mcp-server
+    # Launch claudeup TUI
+    npx claudeup
 
-    # Or install individually with configuration
-    claudeup install mcp-server-google-analytics --env GA_PROPERTY_ID=properties/123456789
+    # Or install globally
+    npm install -g claudeup
+    claudeup
     ```
 
-    **Benefits of claudeup:**
-    - Automatic dependency management
-    - Credential prompts and validation
-    - Config file generation
-    - Easy updates and uninstallation
+    **Navigate to: MCP Server Setup → SEO & Analytics**
 
-    If user prefers claudeup, guide them to run the install commands above.
+    Available SEO MCP servers in claudeup:
+    - **google-analytics** - GA4 page views, engagement, conversions
+    - **google-search-console** - Search performance, CTR, Core Web Vitals
+    - **se-ranking** - Keyword rankings, backlinks, competitor analysis
+
+    **Benefits of claudeup:**
+    - Interactive credential configuration
+    - Automatic config file generation
+    - Visual server management
+    - Easy enable/disable servers
+
+    If user prefers claudeup, guide them to launch it and navigate to SEO & Analytics.
     Otherwise, proceed with manual configuration below.
   </claudeup_quick_setup>
 

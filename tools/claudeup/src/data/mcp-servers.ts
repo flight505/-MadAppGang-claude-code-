@@ -379,6 +379,94 @@ export const curatedMcpServers: McpServer[] = [
     category: 'productivity',
     requiresConfig: false,
   },
+
+  // ═══════════════════════════════════════════════════════════════
+  // SEO & ANALYTICS
+  // ═══════════════════════════════════════════════════════════════
+  {
+    name: 'google-analytics',
+    description: 'Google Analytics 4 data - page views, engagement, conversions',
+    command: 'npx',
+    args: ['-y', 'mcp-server-google-analytics'],
+    env: {
+      GOOGLE_CLIENT_EMAIL: '${GOOGLE_CLIENT_EMAIL}',
+      GOOGLE_PRIVATE_KEY: '${GOOGLE_PRIVATE_KEY}',
+      GA_PROPERTY_ID: '${GA_PROPERTY_ID}',
+    },
+    category: 'seo',
+    requiresConfig: true,
+    configFields: [
+      {
+        name: 'GOOGLE_CLIENT_EMAIL',
+        label: 'Service Account Email',
+        type: 'string',
+        required: true,
+        envVar: 'GOOGLE_CLIENT_EMAIL',
+      },
+      {
+        name: 'GOOGLE_PRIVATE_KEY',
+        label: 'Service Account Private Key',
+        type: 'string',
+        required: true,
+        envVar: 'GOOGLE_PRIVATE_KEY',
+      },
+      {
+        name: 'GA_PROPERTY_ID',
+        label: 'GA4 Property ID (properties/123456789)',
+        type: 'string',
+        required: true,
+        envVar: 'GA_PROPERTY_ID',
+      },
+    ],
+  },
+  {
+    name: 'google-search-console',
+    description: 'Search Console - impressions, clicks, CTR, Core Web Vitals',
+    command: 'npx',
+    args: ['-y', 'mcp-server-gsc'],
+    env: {
+      GOOGLE_APPLICATION_CREDENTIALS: '${GOOGLE_APPLICATION_CREDENTIALS}',
+      GSC_SITE_URL: '${GSC_SITE_URL}',
+    },
+    category: 'seo',
+    requiresConfig: true,
+    configFields: [
+      {
+        name: 'GOOGLE_APPLICATION_CREDENTIALS',
+        label: 'Service Account JSON Path',
+        type: 'path',
+        required: true,
+        envVar: 'GOOGLE_APPLICATION_CREDENTIALS',
+      },
+      {
+        name: 'GSC_SITE_URL',
+        label: 'Site URL (https://example.com)',
+        type: 'url',
+        required: true,
+        envVar: 'GSC_SITE_URL',
+      },
+    ],
+  },
+  {
+    name: 'se-ranking',
+    description: 'SE Ranking - keyword rankings, backlinks, competitor analysis',
+    command: 'docker',
+    args: ['run', '-i', '--rm', '-e', 'SERANKING_API_TOKEN', 'se-ranking/seo-data-api-mcp-server'],
+    env: {
+      SERANKING_API_TOKEN: '${SERANKING_API_TOKEN}',
+    },
+    category: 'seo',
+    requiresConfig: true,
+    configFields: [
+      {
+        name: 'SERANKING_API_TOKEN',
+        label: 'SE Ranking API Token',
+        type: 'string',
+        required: true,
+        envVar: 'SERANKING_API_TOKEN',
+      },
+    ],
+  },
 ];
 
 export function getMcpServersByCategory(): Record<string, McpServer[]> {
@@ -399,6 +487,7 @@ export const categoryOrder = [
   'dev-tools',
   'cloud',
   'database',
+  'seo',
   'productivity',
 ];
 
@@ -410,6 +499,7 @@ export function getCategoryDisplayName(category: string): string {
     'dev-tools': 'Developer Tools',
     cloud: 'Cloud & Infrastructure',
     database: 'Database',
+    seo: 'SEO & Analytics',
     productivity: 'Productivity',
   };
   return names[category] || category;
@@ -423,6 +513,7 @@ export function getCategoryIcon(category: string): string {
     'dev-tools': '🛠️',
     cloud: '☁️',
     database: '🗄️',
+    seo: '📈',
     productivity: '📋',
   };
   return icons[category] || '📦';
