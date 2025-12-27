@@ -25,7 +25,7 @@ allowed-tools: Bash, Task, Read, AskUserQuestion
 
 # Architect Detective Skill
 
-**Version:** 3.1.0
+**Version:** 3.3.0
 **Role:** Software Architect
 **Purpose:** Deep architectural investigation using AST structural analysis with PageRank and dead-code detection
 
@@ -149,6 +149,68 @@ Results labeled "Potentially Dead" require manual verification for:
 - Reflection-accessed code
 - External API consumers
 
+## PHASE 0: MANDATORY SETUP
+
+### Step 1: Verify claudemem v0.3.0
+
+```bash
+which claudemem && claudemem --version
+# Must be 0.3.0+
+```
+
+### Step 2: If Not Installed → STOP
+
+Use AskUserQuestion (see ultrathink-detective for template)
+
+### Step 3: Check Index Status
+
+```bash
+# Check claudemem installation and index
+claudemem --version && ls -la .claudemem/index.db 2>/dev/null
+```
+
+### Step 3.5: Check Index Freshness
+
+Before proceeding with investigation, verify the index is current:
+
+```bash
+# First check if index exists
+if [ ! -d ".claudemem" ] || [ ! -f ".claudemem/index.db" ]; then
+  # Use AskUserQuestion to prompt for index creation
+  # Options: [1] Create index now (Recommended), [2] Cancel investigation
+  exit 1
+fi
+
+# Count files modified since last index
+STALE_COUNT=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) \
+  -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | grep -v "dist" | grep -v "build" | wc -l)
+STALE_COUNT=$((STALE_COUNT + 0))  # Normalize to integer
+
+if [ "$STALE_COUNT" -gt 0 ]; then
+  # Get index time with explicit platform detection
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    INDEX_TIME=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" .claudemem/index.db 2>/dev/null)
+  else
+    INDEX_TIME=$(stat -c "%y" .claudemem/index.db 2>/dev/null | cut -d'.' -f1)
+  fi
+  INDEX_TIME=${INDEX_TIME:-"unknown time"}
+
+  # Get sample of stale files
+  STALE_SAMPLE=$(find . -type f \( -name "*.ts" -o -name "*.tsx" \) \
+    -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | head -5)
+
+  # Use AskUserQuestion (see template in ultrathink-detective)
+fi
+```
+
+### Step 4: Index if Needed
+
+```bash
+claudemem index
+```
+
+---
+
 ## Workflow: Architecture Analysis (v0.3.0)
 
 ### Phase 1: Map the Landscape
@@ -263,6 +325,84 @@ Entry → Controller → Service → Repository → Database
 | 0.001-0.01 | Standard component | Normal code, not architecturally significant |
 | < 0.001 | Leaf/utility | Implementation detail, skip for arch analysis |
 
+## Result Validation Pattern
+
+After EVERY claudemem command, validate results:
+
+### Map Command Validation
+
+After `map` commands, validate architectural symbols were found:
+
+```bash
+RESULTS=$(claudemem --nologo map "service layer business logic" --raw)
+EXIT_CODE=$?
+
+# Check for failure
+if [ "$EXIT_CODE" -ne 0 ]; then
+  DIAGNOSIS=$(claudemem status 2>&1)
+  # Use AskUserQuestion
+fi
+
+# Check for empty results
+if [ -z "$RESULTS" ]; then
+  echo "WARNING: No symbols found - may be wrong query or index issue"
+  # Use AskUserQuestion: Reindex, Different query, or Cancel
+fi
+
+# Check for high-PageRank symbols (> 0.01)
+HIGH_PR=$(echo "$RESULTS" | grep "pagerank:" | awk -F': ' '{if ($2 > 0.01) print}' | wc -l)
+
+if [ "$HIGH_PR" -eq 0 ]; then
+  # No architectural symbols found - may be wrong query or index issue
+  # Use AskUserQuestion: Reindex, Broaden query, or Cancel
+fi
+```
+
+### Symbol Validation
+
+```bash
+SYMBOL=$(claudemem --nologo symbol ArchitecturalComponent --raw)
+
+if [ -z "$SYMBOL" ] || echo "$SYMBOL" | grep -qi "not found\|error"; then
+  # Component doesn't exist or index issue
+  # Use AskUserQuestion
+fi
+```
+
+---
+
+## FALLBACK PROTOCOL
+
+**CRITICAL: Never use grep/find/Glob without explicit user approval.**
+
+If claudemem fails or returns irrelevant results:
+
+1. **STOP** - Do not silently switch tools
+2. **DIAGNOSE** - Run `claudemem status`
+3. **REPORT** - Tell user what happened
+4. **ASK** - Use AskUserQuestion for next steps
+
+```typescript
+// Fallback options (in order of preference)
+AskUserQuestion({
+  questions: [{
+    question: "claudemem map returned no architectural symbols or failed. How should I proceed?",
+    header: "Architecture Discovery Issue",
+    multiSelect: false,
+    options: [
+      { label: "Reindex codebase", description: "Run claudemem index (~1-2 min)" },
+      { label: "Try broader query", description: "Use different architectural terms" },
+      { label: "Use grep (not recommended)", description: "Traditional search - loses PageRank ranking" },
+      { label: "Cancel", description: "Stop investigation" }
+    ]
+  }]
+})
+```
+
+**See ultrathink-detective skill for complete Fallback Protocol documentation.**
+
+---
+
 ## Anti-Patterns
 
 | Anti-Pattern | Why Wrong | Correct Approach |
@@ -283,5 +423,5 @@ Entry → Controller → Service → Repository → Database
 ---
 
 **Maintained by:** MadAppGang
-**Plugin:** code-analysis v2.6.0
-**Last Updated:** December 2025 (v0.4.0 dead-code support)
+**Plugin:** code-analysis v2.7.0
+**Last Updated:** December 2025 (v3.3.0 - Cross-platform compatibility, inline templates, improved validation)

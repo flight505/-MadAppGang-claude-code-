@@ -1,10 +1,10 @@
 # SEO Plugin
 
-**Version:** 1.0.0
+**Version:** 1.2.0
 **Category:** Content
 **License:** MIT
 
-Comprehensive SEO toolkit with keyword research, content optimization, technical audits, and multi-agent content workflows.
+Comprehensive SEO toolkit with keyword research, content optimization, technical audits, multi-agent content workflows, and analytics integrations (GA4, GSC, SE Ranking).
 
 ## Features
 
@@ -14,29 +14,39 @@ Comprehensive SEO toolkit with keyword research, content optimization, technical
 - **Content Brief Generation** - Structured briefs for SEO-optimized content
 - **Technical SEO Audits** - Schema markup, internal linking, and technical health checks
 - **E-E-A-T Validation** - Experience, Expertise, Authoritativeness, Trustworthiness scoring
-- **Multi-Agent Workflows** - Coordinated execution across 4 specialized agents
+- **Multi-Agent Workflows** - Coordinated execution across 5 specialized agents
+- **Analytics Integration** - GA4, Google Search Console, SE Ranking data correlation
+- **Multi-Model Review** - Parallel AI validation with E-E-A-T consensus scoring
+- **A/B Alternative Generation** - Multi-model content alternatives with voting
 
 ## Architecture
 
 ```
 +-------------------------------------------------------------+
-|                      SEO PLUGIN (v1.0.0)                    |
+|                      SEO PLUGIN (v1.2.0)                    |
 +-------------------------------------------------------------+
 |                                                             |
-|  COMMANDS (4)                    AGENTS (4)                 |
-|  +-- /seo-research              +-- seo-analyst (Sonnet)    |
-|  +-- /seo-optimize              +-- seo-researcher (Sonnet) |
-|  +-- /seo-brief                 +-- seo-writer (Sonnet)     |
-|  +-- /seo-audit                 +-- seo-editor (Opus)       |
-|                                                             |
-|  SKILLS (7)                      TOOL INTEGRATIONS          |
-|  +-- keyword-cluster-builder     +-- WebFetch               |
-|  +-- content-optimizer           +-- WebSearch              |
-|  +-- content-brief               +-- Chrome DevTools MCP    |
-|  +-- technical-audit             +-- Claudish (multi-model) |
-|  +-- serp-analysis                                          |
-|  +-- schema-markup               DEPENDENCIES               |
-|  +-- link-strategy               +-- orchestration plugin   |
+|  COMMANDS (8)                    AGENTS (5)                 |
+|  +-- /research                  +-- seo-analyst (Sonnet)    |
+|  +-- /optimize                  +-- seo-researcher (Sonnet) |
+|  +-- /brief                     +-- seo-writer (Sonnet)     |
+|  +-- /audit                     +-- seo-editor (Opus)       |
+|  +-- /review                    +-- seo-data-analyst (Sonnet)|
+|  +-- /alternatives                                          |
+|  +-- /performance               ANALYTICS INTEGRATIONS      |
+|  +-- /setup-analytics           +-- Google Analytics 4      |
+|                                 +-- Google Search Console   |
+|  SKILLS (10)                    +-- SE Ranking (via MCP)    |
+|  +-- keyword-cluster-builder                                |
+|  +-- content-optimizer          TOOL INTEGRATIONS           |
+|  +-- content-brief              +-- WebFetch, WebSearch     |
+|  +-- technical-audit            +-- Chrome DevTools MCP     |
+|  +-- serp-analysis              +-- Claudish (multi-model)  |
+|  +-- schema-markup              +-- claudeup (MCP setup)    |
+|  +-- link-strategy                                          |
+|  +-- analytics-interpretation   DEPENDENCIES                |
+|  +-- performance-correlation    +-- orchestration plugin    |
+|  +-- data-extraction-patterns                               |
 |                                                             |
 +-------------------------------------------------------------+
 ```
@@ -81,6 +91,15 @@ Quality review, SEO compliance, and E-E-A-T validation.
 - Verify readability scores
 - Validate schema markup
 
+### SEO Data Analyst (Sonnet, Cyan)
+Analytics data specialist for cross-source performance correlation.
+
+**Use cases:**
+- Interpret GA4, GSC, and SE Ranking data
+- Correlate metrics across sources (high impressions + low CTR = snippet issue)
+- Calculate Content Health Score (0-100)
+- Generate data-driven optimization recommendations
+
 ## Commands
 
 ### `/seo-research <keyword>`
@@ -122,7 +141,7 @@ Generate comprehensive content brief for target keyword.
 - Word count target
 - E-E-A-T requirements
 
-### `/seo-audit <url>`
+### `/audit <url>`
 Technical SEO audit with Chrome DevTools MCP integration.
 
 **Workflow:** SESSION INIT → FETCH → ANALYZE → REPORT
@@ -134,6 +153,51 @@ Technical SEO audit with Chrome DevTools MCP integration.
 - Readability scoring
 - Mobile-friendliness
 - Page speed indicators
+
+### `/review <file|content>`
+Multi-model E-E-A-T content review with parallel validation.
+
+**Workflow:** SESSION INIT → PARALLEL REVIEWS → CONSENSUS → REPORT
+
+**Features:**
+- Parallel execution with 8 external AI models
+- E-E-A-T consensus scoring (0-100)
+- Severity classification (UNANIMOUS, STRONG, MAJORITY, DIVERGENT)
+- Cost transparency before execution
+
+### `/alternatives <content>`
+Generate A/B content alternatives using multiple AI models.
+
+**Workflow:** SESSION INIT → PARALLEL GENERATION → VOTING → SELECTION
+
+**Features:**
+- Multiple content variations from different AI perspectives
+- Community voting simulation
+- Best alternative selection with rationale
+
+### `/performance <url>`
+Content performance analysis combining GA4, GSC, and SE Ranking data.
+
+**Workflow:** SESSION INIT → PARALLEL DATA FETCH → CORRELATE → ANALYZE → RECOMMEND
+
+**Features:**
+- Parallel fetching from all configured analytics sources
+- Content Health Score (0-100) calculation
+- Cross-source correlation patterns
+- Graceful degradation (works with 1, 2, or 3 sources)
+- Quick wins, strategic, and long-term recommendations
+
+### `/setup-analytics`
+Interactive setup wizard for SEO analytics integrations.
+
+**Workflow:** CHECK STATUS → SELECT SERVICES → CONFIGURE → VALIDATE → SAVE
+
+**Supports:**
+- Google Analytics 4 (page metrics, engagement)
+- Google Search Console (search performance, CTR)
+- SE Ranking via official MCP (keyword rankings, backlinks)
+
+**Quick Setup:** Run `npx claudeup` and navigate to SEO & Analytics.
 
 ## Skills
 
@@ -157,6 +221,45 @@ Schema.org implementation and validation patterns.
 
 ### link-strategy
 Internal linking strategy and anchor text optimization.
+
+### analytics-interpretation
+Metric benchmarks and status indicators for GA4, GSC, SE Ranking data.
+
+### performance-correlation
+Cross-source correlation patterns and Content Health Score calculation.
+
+### data-extraction-patterns
+API patterns, rate limiting, caching, and error handling for analytics data.
+
+## Analytics Integration
+
+The SEO plugin integrates with three analytics platforms via MCP servers:
+
+### Google Analytics 4
+- **MCP Server:** `mcp-server-google-analytics`
+- **Metrics:** Page views, engagement rate, bounce rate, session duration
+- **Setup:** Service Account with Analytics Data API enabled
+
+### Google Search Console
+- **MCP Server:** `mcp-server-gsc`
+- **Metrics:** Impressions, clicks, CTR, average position
+- **Setup:** Service Account with Search Console API access
+
+### SE Ranking
+- **MCP Server:** `seo-data-api-mcp` (official, Docker-based)
+- **Metrics:** Keyword rankings, backlinks, competitor analysis
+- **Setup:** API token from SE Ranking dashboard
+- **Requires:** Docker installed and running
+
+### Quick Setup
+
+```bash
+# Recommended: Use claudeup TUI for easy MCP server setup
+npx claudeup
+# Navigate to: MCP Server Setup → SEO & Analytics
+```
+
+Or run `/setup-analytics` for an interactive setup wizard.
 
 ## Multi-Agent Workflow
 

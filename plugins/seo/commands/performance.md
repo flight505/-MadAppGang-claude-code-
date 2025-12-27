@@ -93,7 +93,7 @@ skills: seo:analytics-interpretation, seo:performance-correlation, seo:data-extr
 
         [ -n "${GA_PROPERTY_ID:-}" ] && [ -n "${GOOGLE_CLIENT_EMAIL:-}" ] && GA4_READY=true
         [ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ] || [ -n "${GOOGLE_CLIENT_EMAIL:-}" ] && GSC_READY=true
-        [ -n "${SE_RANKING_API_KEY:-}" ] && SER_READY=true
+        [ -n "${SERANKING_API_TOKEN:-}" ] && SER_READY=true
 
         echo "GA4: $GA4_READY | GSC: $GSC_READY | SE Ranking: $SER_READY"
         ```
@@ -192,7 +192,7 @@ skills: seo:analytics-interpretation, seo:performance-correlation, seo:data-extr
 
         ```bash
         # Keyword rankings
-        curl -s -H "Authorization: Token ${SE_RANKING_API_KEY}" \
+        curl -s -H "Authorization: Token ${SERANKING_API_TOKEN}" \
           "https://api4.seranking.com/research/competitor/overview?domain=${DOMAIN}"
 
         # Or use WebFetch tool with API endpoint

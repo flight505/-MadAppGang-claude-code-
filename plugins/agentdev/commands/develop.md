@@ -90,12 +90,39 @@ skills: orchestration:multi-model-validation, orchestration:quality-gates, orche
         </step>
         <step>
           **Run Reviews IN PARALLEL** (single message, multiple Task calls):
-          For each model, record MODEL_START time, then launch `agentdev:architect` with:
-          ```
-          PROXY_MODE: {model_id}
 
-          Review design plan in ai-docs/agent-design-{name}.md
-          Save to: ai-docs/plan-review-{model-sanitized}.md
+          **CRITICAL**: Use PROXY_MODE-enabled agents, NOT general-purpose!
+
+          **Correct Pattern:**
+          For each model, record MODEL_START time, then launch `agentdev:architect` with:
+          ```typescript
+          // ✅ CORRECT: Use agentdev:architect (has PROXY_MODE support)
+          Task({
+            subagent_type: "agentdev:architect",
+            description: "Grok plan review",
+            run_in_background: true,
+            prompt: `PROXY_MODE: x-ai/grok-code-fast-1
+
+Review the design plan at ai-docs/agent-design-{name}.md
+
+Evaluate:
+1. Design completeness
+2. XML/YAML structure validity
+3. TodoWrite integration
+4. Proxy mode support
+5. Example quality
+
+Save findings to: ai-docs/plan-review-grok.md`
+          })
+          ```
+
+          **DO NOT** use general-purpose agents:
+          ```typescript
+          // ❌ WRONG - This will NOT work correctly
+          Task({
+            subagent_type: "general-purpose",
+            prompt: "Review using claudish with model X..."
+          })
           ```
         </step>
         <step>

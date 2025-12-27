@@ -38,10 +38,14 @@ A complete Claude Code plugin marketplace with enterprise-level architecture:
   - CSS architecture management with knowledge files
   - Pixel-perfect UI implementation with parallel design validation
   - Task decomposition for isolated, parallel implementation
-- **Code Analysis Plugin** (v2.4.0) - Deep codebase investigation with ENFORCED claudemem v0.2.0
+- **Code Analysis Plugin** (v2.7.0) - Deep codebase investigation with claudemem v0.7.0
   - 1 Specialized Agent (codebase-detective)
   - 11 Skills + 5 PreToolUse Hooks + 1 SessionStart Hook
-  - **Claudemem v0.2.0 LLM Enrichment** (NEW in v2.4.0) - symbol_summary and file_summary for code understanding
+  - **Framework Documentation** (NEW in v2.7.0) - Auto-fetch docs for project dependencies
+    - Context7, llms.txt, DevDocs providers with automatic fallback
+    - Unified search across code AND library documentation
+    - Auto-detects dependencies from package.json, requirements.txt, go.mod, Cargo.toml
+  - **Claudemem v0.7.0 Features** - AST structural analysis + framework docs
     - symbol_summary: Function behavior, params, returns, side effects
     - file_summary: File purpose, exports, architectural patterns
     - --use-case navigation: Agent-optimized search weights
@@ -778,6 +782,28 @@ Include marketplace in project settings (requires folder trust):
 }
 ```
 
+### PROXY_MODE Quick Reference
+
+**For multi-model reviews, use PROXY_MODE-enabled agents:**
+
+| Use Case | Agent | Example |
+|----------|-------|---------|
+| Design review | `agentdev:reviewer` | Plan validation |
+| Code review | `frontend:reviewer` | Implementation review |
+| Architecture | `frontend:plan-reviewer` | Architecture validation |
+
+**Pattern:**
+```typescript
+Task({
+  subagent_type: "agentdev:reviewer",  // MUST support PROXY_MODE
+  prompt: `PROXY_MODE: x-ai/grok-code-fast-1
+
+[actual task]`
+})
+```
+
+**NOT:** `general-purpose` - it doesn't support PROXY_MODE!
+
 ## Design Principles
 
 1. **Shareable Config, Private Secrets** - Configuration in git, credentials in environment
@@ -847,26 +873,27 @@ Include marketplace in project settings (requires folder trust):
 **Detailed Release Notes:** See [RELEASES.md](./RELEASES.md) for comprehensive release documentation
 
 **Current Versions:**
-- Orchestration Plugin: **v0.5.0** (2025-12-14)
+- Orchestration Plugin: **v0.6.0** (2025-12-14)
 - Frontend Plugin: **v3.13.0** (2025-12-14)
-- Code Analysis Plugin: **v2.5.0** (2025-12-14)
+- Code Analysis Plugin: **v2.7.0** (2025-12-27)
 - Bun Backend Plugin: **v1.5.2** (2025-11-26)
 - Agent Development Plugin: **v1.1.0** (2025-12-09)
 - Claudish CLI: See https://github.com/MadAppGang/claudish (separate repository)
 
-**Latest Changes (Code Analysis v2.5.0 - Claudemem v0.3.0 AST Structural Analysis):**
+**Latest Changes (Code Analysis v2.7.0 - Claudemem v0.7.0 Framework Documentation):**
+- ✅ **Framework Documentation Fetching**: Auto-fetch docs for project dependencies
+- ✅ **3 Documentation Providers**: Context7 (6000+ libs), llms.txt (free), DevDocs (free fallback)
+- ✅ **Unified Search**: Search across BOTH codebase AND library documentation
+- ✅ **Dependency Detection**: Auto-detect from package.json, requirements.txt, go.mod, Cargo.toml
+- ✅ **New Commands**: `claudemem docs status/fetch/providers/refresh/clear`
+- ✅ **claudemem-search Skill v0.6.0**: Complete framework documentation section added
+
+**Previous Changes (Code Analysis v2.5.0 - Claudemem v0.3.0 AST Structural Analysis):**
 - ✅ **Claudemem v0.3.0 Integration**: Full AST structural analysis with PageRank ranking
 - ✅ **New AST Commands**: map, symbol, callers, callees, context for structural navigation
 - ✅ **PageRank Symbol Importance**: High PageRank (>0.05) = architectural pillars
 - ✅ **Callers/Callees Analysis**: Impact analysis and dependency tracing
 - ✅ **Detective Skills v3.0.0**: All 5 detective skills updated for AST commands
-  - architect-detective: Uses `map` command for architecture discovery
-  - developer-detective: Uses `callers`/`callees` for implementation understanding
-  - tester-detective: Uses `callers` to find tests (tests are callers)
-  - debugger-detective: Uses `context` for full call chain tracing
-  - ultrathink-detective: Combines ALL AST commands for multi-dimensional analysis
-- ✅ **Updated Hooks**: All hooks updated for AST commands (map, symbol, callers)
-- ✅ **80% Token Efficiency**: Targeted AST navigation vs bulk file reads
 
 **Previous Changes (Code Analysis v2.4.0 - Claudemem v0.2.0 LLM Enrichment):**
 - ✅ Claudemem v0.2.0 Integration with LLM-enriched semantic search
@@ -960,11 +987,12 @@ Include marketplace in project settings (requires folder trust):
 - ✅ **6,774 lines** of comprehensive orchestration knowledge
 
 **Git Tags:**
-- Orchestration: `plugins/orchestration/v0.5.0`
+- Orchestration: `plugins/orchestration/v0.6.0`
 - Frontend: `plugins/frontend/v3.13.0`
 - Bun: `plugins/bun/v1.5.2`
-- Code Analysis: `plugins/code-analysis/v2.4.0`
+- Code Analysis: `plugins/code-analysis/v2.7.0`
 - Agent Development: `plugins/agentdev/v1.1.0`
+- SEO: `plugins/seo/v1.2.0`
 - Use correct tag format when releasing: `plugins/{plugin-name}/vX.Y.Z`
 
 **⚠️ RELEASE CHECKLIST (ALL 3 REQUIRED):**
@@ -978,6 +1006,6 @@ Missing any of these will cause claudeup to not see the update!
 ---
 
 **Maintained by:** Jack Rudenko @ MadAppGang
-**Last Updated:** December 14, 2025
-**Version:** 5 plugins (Orchestration v0.5.0, Frontend v3.13.0, Code Analysis v2.5.0, Bun Backend v1.5.2, Agent Development v1.1.0)
+**Last Updated:** December 27, 2025
+**Version:** 6 plugins (Orchestration v0.6.0, Frontend v3.13.0, Code Analysis v2.7.0, Bun Backend v1.5.2, Agent Development v1.1.0, SEO v1.2.0)
 - do not use hardcoded path in code, docs, comments or any other files

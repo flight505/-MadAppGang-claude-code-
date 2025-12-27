@@ -26,7 +26,7 @@ allowed-tools: Bash, Task, Read, AskUserQuestion
 
 # Debugger Detective Skill
 
-**Version:** 3.1.0
+**Version:** 3.3.0
 **Role:** Debugger / Incident Responder
 **Purpose:** Bug investigation and root cause analysis using AST call chain tracing with blast radius impact analysis
 
@@ -131,6 +131,68 @@ claudemem --nologo symbol updateUserState --raw
 # Who calls this mutation?
 claudemem --nologo callers updateUserState --raw
 ```
+
+## PHASE 0: MANDATORY SETUP
+
+### Step 1: Verify claudemem v0.3.0
+
+```bash
+which claudemem && claudemem --version
+# Must be 0.3.0+
+```
+
+### Step 2: If Not Installed → STOP
+
+Use AskUserQuestion (see ultrathink-detective for template)
+
+### Step 3: Check Index Status
+
+```bash
+# Check claudemem installation and index
+claudemem --version && ls -la .claudemem/index.db 2>/dev/null
+```
+
+### Step 3.5: Check Index Freshness
+
+Before proceeding with investigation, verify the index is current:
+
+```bash
+# First check if index exists
+if [ ! -d ".claudemem" ] || [ ! -f ".claudemem/index.db" ]; then
+  # Use AskUserQuestion to prompt for index creation
+  # Options: [1] Create index now (Recommended), [2] Cancel investigation
+  exit 1
+fi
+
+# Count files modified since last index
+STALE_COUNT=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) \
+  -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | grep -v "dist" | grep -v "build" | wc -l)
+STALE_COUNT=$((STALE_COUNT + 0))  # Normalize to integer
+
+if [ "$STALE_COUNT" -gt 0 ]; then
+  # Get index time with explicit platform detection
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    INDEX_TIME=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" .claudemem/index.db 2>/dev/null)
+  else
+    INDEX_TIME=$(stat -c "%y" .claudemem/index.db 2>/dev/null | cut -d'.' -f1)
+  fi
+  INDEX_TIME=${INDEX_TIME:-"unknown time"}
+
+  # Get sample of stale files
+  STALE_SAMPLE=$(find . -type f \( -name "*.ts" -o -name "*.tsx" \) \
+    -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | head -5)
+
+  # Use AskUserQuestion (see template in ultrathink-detective)
+fi
+```
+
+### Step 4: Index if Needed
+
+```bash
+claudemem index
+```
+
+---
 
 ## Workflow: Bug Investigation (v0.3.0)
 
@@ -289,6 +351,91 @@ claudemem --nologo callees calculateTotal --raw
 claudemem --nologo callers calculateTotal --raw
 ```
 
+## Result Validation Pattern
+
+After EVERY claudemem command, validate results:
+
+### Context Validation for Debugging
+
+When tracing call chains:
+
+```bash
+CONTEXT=$(claudemem --nologo context failingFunction --raw)
+EXIT_CODE=$?
+
+# Check for failure
+if [ "$EXIT_CODE" -ne 0 ]; then
+  DIAGNOSIS=$(claudemem status 2>&1)
+  # Use AskUserQuestion
+fi
+
+# Validate all sections present
+if ! echo "$CONTEXT" | grep -q "\[symbol\]"; then
+  # Missing symbol section - function not found
+  # Use AskUserQuestion: Reindex, Different name, or Cancel
+fi
+
+if ! echo "$CONTEXT" | grep -q "\[callers\]"; then
+  # Missing callers - may be entry point or index issue
+  # Entry points (API handlers, main) have 0 callers - this is expected
+fi
+
+if ! echo "$CONTEXT" | grep -q "\[callees\]"; then
+  # Missing callees - may be leaf function or index issue
+  # Leaf functions (console.log, throw) have 0 callees - this is expected
+fi
+```
+
+### Empty Results Handling
+
+```bash
+CALLERS=$(claudemem --nologo callers suspectedBug --raw)
+
+# 0 callers could mean:
+# 1. Entry point (main, API handler) - expected
+# 2. Dead code - use dead-code command (v0.4.0+)
+# 3. Dynamically called - check for import(), eval, reflection
+
+if echo "$CALLERS" | grep -qi "error\|not found"; then
+  # Actual error vs no callers
+  # Use AskUserQuestion
+fi
+```
+
+---
+
+## FALLBACK PROTOCOL
+
+**CRITICAL: Never use grep/find/Glob without explicit user approval.**
+
+If claudemem fails or returns irrelevant results:
+
+1. **STOP** - Do not silently switch tools
+2. **DIAGNOSE** - Run `claudemem status`
+3. **REPORT** - Tell user what happened
+4. **ASK** - Use AskUserQuestion for next steps
+
+```typescript
+// Fallback options (in order of preference)
+AskUserQuestion({
+  questions: [{
+    question: "claudemem bug investigation failed or found no call chain. How should I proceed?",
+    header: "Debugging Issue",
+    multiSelect: false,
+    options: [
+      { label: "Reindex codebase", description: "Run claudemem index (~1-2 min)" },
+      { label: "Try different function name", description: "Search for related functions" },
+      { label: "Use grep (not recommended)", description: "Traditional search - loses call chain tracing" },
+      { label: "Cancel", description: "Stop investigation" }
+    ]
+  }]
+})
+```
+
+**See ultrathink-detective skill for complete Fallback Protocol documentation.**
+
+---
+
 ## Anti-Patterns
 
 | Anti-Pattern | Why Wrong | Correct Approach |
@@ -317,5 +464,5 @@ claudemem --nologo callers calculateTotal --raw
 ---
 
 **Maintained by:** MadAppGang
-**Plugin:** code-analysis v2.6.0
-**Last Updated:** December 2025 (v0.4.0 impact analysis)
+**Plugin:** code-analysis v2.7.0
+**Last Updated:** December 2025 (v3.3.0 - Cross-platform compatibility, inline templates, improved validation)

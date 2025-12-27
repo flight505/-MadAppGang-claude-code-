@@ -25,7 +25,7 @@ allowed-tools: Bash, Task, Read, AskUserQuestion
 
 # Tester Detective Skill
 
-**Version:** 3.1.0
+**Version:** 3.3.0
 **Role:** QA Engineer / Test Specialist
 **Purpose:** Test coverage investigation using AST callers analysis and automated test-gaps detection
 
@@ -151,6 +151,68 @@ claudemem --nologo callers saveToDatabase --raw
 
 # Note which have test callers and which don't
 ```
+
+## PHASE 0: MANDATORY SETUP
+
+### Step 1: Verify claudemem v0.3.0
+
+```bash
+which claudemem && claudemem --version
+# Must be 0.3.0+
+```
+
+### Step 2: If Not Installed → STOP
+
+Use AskUserQuestion (see ultrathink-detective for template)
+
+### Step 3: Check Index Status
+
+```bash
+# Check claudemem installation and index
+claudemem --version && ls -la .claudemem/index.db 2>/dev/null
+```
+
+### Step 3.5: Check Index Freshness
+
+Before proceeding with investigation, verify the index is current:
+
+```bash
+# First check if index exists
+if [ ! -d ".claudemem" ] || [ ! -f ".claudemem/index.db" ]; then
+  # Use AskUserQuestion to prompt for index creation
+  # Options: [1] Create index now (Recommended), [2] Cancel investigation
+  exit 1
+fi
+
+# Count files modified since last index
+STALE_COUNT=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) \
+  -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | grep -v "dist" | grep -v "build" | wc -l)
+STALE_COUNT=$((STALE_COUNT + 0))  # Normalize to integer
+
+if [ "$STALE_COUNT" -gt 0 ]; then
+  # Get index time with explicit platform detection
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    INDEX_TIME=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" .claudemem/index.db 2>/dev/null)
+  else
+    INDEX_TIME=$(stat -c "%y" .claudemem/index.db 2>/dev/null | cut -d'.' -f1)
+  fi
+  INDEX_TIME=${INDEX_TIME:-"unknown time"}
+
+  # Get sample of stale files
+  STALE_SAMPLE=$(find . -type f \( -name "*.ts" -o -name "*.tsx" \) \
+    -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | head -5)
+
+  # Use AskUserQuestion (see template in ultrathink-detective)
+fi
+```
+
+### Step 4: Index if Needed
+
+```bash
+claudemem index
+```
+
+---
 
 ## Workflow: Test Coverage Analysis (v0.3.0)
 
@@ -312,6 +374,89 @@ claudemem --nologo callers targetFunction --raw
 # Step 3: Check: Does test cover edge cases? Errors?
 ```
 
+## Result Validation Pattern
+
+After EVERY claudemem command, validate results:
+
+### Callers Validation for Tests
+
+When checking test coverage:
+
+```bash
+CALLERS=$(claudemem --nologo callers processPayment --raw)
+EXIT_CODE=$?
+
+# Check for command failure
+if [ "$EXIT_CODE" -ne 0 ]; then
+  DIAGNOSIS=$(claudemem status 2>&1)
+  # Use AskUserQuestion for recovery
+fi
+
+# Validate we got callers, not an error
+if echo "$CALLERS" | grep -qi "error\|failed"; then
+  # Actual error, not 0 callers
+  # Use AskUserQuestion
+fi
+
+# Count test vs production callers
+TEST_CALLERS=$(echo "$CALLERS" | grep -E "\.test\.|\.spec\.|_test\." | wc -l)
+PROD_CALLERS=$(echo "$CALLERS" | grep -v -E "\.test\.|\.spec\.|_test\." | wc -l)
+
+# Report coverage ratio
+if [ "$TEST_CALLERS" -eq 0 ]; then
+  echo "WARNING: No test coverage found for this function"
+fi
+```
+
+### Empty Results Validation
+
+```bash
+RESULTS=$(claudemem --nologo map "test spec describe" --raw)
+
+if [ -z "$RESULTS" ]; then
+  echo "WARNING: No test infrastructure found"
+  # May indicate:
+  # 1. Tests in non-standard locations
+  # 2. Index doesn't include test files
+  # 3. Wrong query terms
+  # Use AskUserQuestion
+fi
+```
+
+---
+
+## FALLBACK PROTOCOL
+
+**CRITICAL: Never use grep/find/Glob without explicit user approval.**
+
+If claudemem fails or returns irrelevant results:
+
+1. **STOP** - Do not silently switch tools
+2. **DIAGNOSE** - Run `claudemem status`
+3. **REPORT** - Tell user what happened
+4. **ASK** - Use AskUserQuestion for next steps
+
+```typescript
+// Fallback options (in order of preference)
+AskUserQuestion({
+  questions: [{
+    question: "claudemem test coverage analysis failed or found no tests. How should I proceed?",
+    header: "Test Coverage Issue",
+    multiSelect: false,
+    options: [
+      { label: "Reindex codebase", description: "Run claudemem index (~1-2 min)" },
+      { label: "Try different query", description: "Search for different test patterns" },
+      { label: "Use grep (not recommended)", description: "Traditional search - loses caller analysis" },
+      { label: "Cancel", description: "Stop investigation" }
+    ]
+  }]
+})
+```
+
+**See ultrathink-detective skill for complete Fallback Protocol documentation.**
+
+---
+
 ## Anti-Patterns
 
 | Anti-Pattern | Why Wrong | Correct Approach |
@@ -340,5 +485,5 @@ claudemem --nologo callers targetFunction --raw
 ---
 
 **Maintained by:** MadAppGang
-**Plugin:** code-analysis v2.6.0
-**Last Updated:** December 2025 (v0.4.0 test-gaps automation)
+**Plugin:** code-analysis v2.7.0
+**Last Updated:** December 2025 (v3.3.0 - Cross-platform compatibility, inline templates, improved validation)

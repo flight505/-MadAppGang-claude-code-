@@ -4,9 +4,9 @@ description: "⚡ PRIMARY TOOL for semantic code search AND structural analysis.
 allowed-tools: Bash, Task, AskUserQuestion
 ---
 
-# Claudemem Semantic Code Search Expert (v0.4.0)
+# Claudemem Semantic Code Search Expert (v0.6.0)
 
-This Skill provides comprehensive guidance on leveraging **claudemem** v0.4.0 with **AST-based structural analysis** and **code analysis commands** for intelligent codebase understanding.
+This Skill provides comprehensive guidance on leveraging **claudemem** v0.7.0+ with **AST-based structural analysis**, **code analysis commands**, and **framework documentation** for intelligent codebase understanding.
 
 ## What's New in v0.3.0
 
@@ -82,6 +82,7 @@ claudemem --version
 | `dead-code` | v0.4.0+ | ⚠️ Check version | Find unused symbols |
 | `test-gaps` | v0.4.0+ | ⚠️ Check version | Find high-importance untested code |
 | `impact` | v0.4.0+ | ⚠️ Check version | BFS transitive caller analysis |
+| `docs` | v0.7.0+ | ✅ Available | Framework documentation fetching |
 
 ### Version Detection in Scripts
 
@@ -1152,8 +1153,337 @@ brew tap MadAppGang/claude-mem && brew install --cask claudemem
 claudemem index
 
 # Check status
-claudemem status
+claudemem --version && ls -la .claudemem/index.db 2>/dev/null
 ```
+
+---
+
+## Framework Documentation (v0.7.0+) ⭐NEW
+
+Claudemem v0.7.0+ includes **automatic framework documentation fetching** for your project dependencies. Documentation is indexed alongside your code, enabling unified semantic search across both.
+
+### Quick Reference
+
+```bash
+# Core documentation commands
+claudemem docs status            # Show indexed libraries and cache state
+claudemem docs fetch             # Fetch docs for all detected dependencies
+claudemem docs fetch react vue   # Fetch specific libraries
+claudemem docs providers         # List available documentation providers
+claudemem docs refresh           # Force refresh all cached documentation
+claudemem docs clear             # Clear all documentation cache
+claudemem docs clear react       # Clear specific library cache
+```
+
+### Documentation Providers
+
+Claudemem uses a **provider hierarchy** with automatic fallback:
+
+| Priority | Provider | Coverage | Requirements |
+|----------|----------|----------|--------------|
+| 1 (Best) | **Context7** | 6000+ libraries with versioned code examples | API key (free tier available) |
+| 2 | **llms.txt** | Official AI-friendly docs from framework sites | Free, no key needed |
+| 3 | **DevDocs** | Consistent offline documentation, 100+ languages | Free, no key needed |
+
+### Dependency Detection
+
+Claudemem automatically detects dependencies from:
+
+| File | Ecosystem | Example |
+|------|-----------|---------|
+| `package.json` | npm/yarn | React, Vue, Express |
+| `requirements.txt` | Python/pip | Django, FastAPI, Pandas |
+| `go.mod` | Go | Gin, Echo, GORM |
+| `Cargo.toml` | Rust | Tokio, Actix, Serde |
+
+### Setup
+
+```bash
+# Option 1: Run init (includes docs configuration)
+claudemem init
+
+# Option 2: Configure Context7 manually (optional, for best coverage)
+export CONTEXT7_API_KEY=your_key
+
+# Get free API key at: https://context7.com/dashboard
+```
+
+### Usage Examples
+
+```bash
+# Check current documentation status
+claudemem docs status
+
+# Output:
+# 📚 Documentation Status
+#
+#   Enabled:     Yes
+#   Providers:   Context7, llms.txt, DevDocs
+#   Libraries:   12 indexed
+#   Cache Age:   2h 15m
+#
+#   Indexed Libraries:
+#     react (v18) via Context7 - 145 chunks
+#     typescript (v5) via Context7 - 89 chunks
+#     express (v4) via llms.txt - 34 chunks
+#     ...
+
+# Fetch documentation for all project dependencies
+claudemem docs fetch
+
+# Output:
+# 📚 Fetching Documentation
+#
+#   [1/8] react... ✓ 145 chunks via Context7
+#   [2/8] typescript... ✓ 89 chunks via Context7
+#   [3/8] express... ✓ 34 chunks via llms.txt
+#   [4/8] lodash... ✓ 67 chunks via DevDocs
+#   ...
+
+# Fetch specific library
+claudemem docs fetch fastapi
+
+# View available providers
+claudemem docs providers
+
+# Force refresh (clears cache, refetches)
+claudemem docs refresh
+```
+
+### Unified Search (Code + Documentation)
+
+After indexing documentation, `claudemem search` returns results from **both** your codebase **and** framework documentation:
+
+```bash
+claudemem --nologo search "how to use React hooks" --raw
+
+# Output includes:
+# --- Your Code ---
+# file: src/components/UserProfile.tsx
+# line: 12-45
+# kind: function
+# name: useUserProfile
+# score: 0.89
+# content: Custom hook for user profile management...
+# ---
+# --- React Documentation ---
+# library: react
+# section: Hooks Reference
+# title: useEffect
+# score: 0.87
+# content: The useEffect Hook lets you perform side effects...
+# ---
+# library: react
+# section: Hooks Reference
+# title: useState
+# score: 0.85
+# content: useState is a Hook that lets you add state...
+```
+
+### When to Use Documentation Commands
+
+| Scenario | Command | Why |
+|----------|---------|-----|
+| New project setup | `claudemem docs fetch` | Index docs for all dependencies |
+| Learning new library | `claudemem docs fetch <library>` | Get searchable reference |
+| Updated dependencies | `claudemem docs refresh` | Refresh to get new versions |
+| Check what's indexed | `claudemem docs status` | View cache state |
+| Clear space | `claudemem docs clear` | Remove cached documentation |
+
+### Integration with Investigation Workflow
+
+Add documentation fetch to your investigation workflow:
+
+```bash
+# ENHANCED Investigation Workflow (v0.7.0+)
+
+# Step 0: Ensure framework docs are available (one-time)
+claudemem docs status || claudemem docs fetch
+
+# Step 1: Map architecture (now includes library patterns)
+claudemem --nologo map "authentication" --raw
+
+# Step 2: Search both code AND framework docs
+claudemem --nologo search "JWT token validation" --raw
+# Returns: your auth code + library docs on JWT handling
+
+# Step 3: Understand how the library recommends usage
+claudemem --nologo search "react best practices hooks" --raw
+# Returns: your patterns + React official guidance
+```
+
+### Version Information
+
+The `claudemem docs` command requires **v0.7.0+**. Check your version:
+
+```bash
+claudemem --version
+# Expected: 0.7.0 or higher
+```
+
+**Note:** If `claudemem docs help` returns "Unknown command", upgrade your claudemem installation.
+
+---
+
+## Index Freshness Check (v0.5.0)
+
+Before proceeding with investigation, verify the index is current:
+
+```bash
+# Count files modified since last index
+STALE_COUNT=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) \
+  -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | grep -v "dist" | grep -v "build" | wc -l)
+STALE_COUNT=$((STALE_COUNT + 0))  # Normalize to integer
+
+if [ "$STALE_COUNT" -gt 0 ]; then
+  # Get index time with explicit platform detection
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    INDEX_TIME=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" .claudemem/index.db 2>/dev/null)
+  else
+    INDEX_TIME=$(stat -c "%y" .claudemem/index.db 2>/dev/null | cut -d'.' -f1)
+  fi
+  INDEX_TIME=${INDEX_TIME:-"unknown time"}
+
+  # Use AskUserQuestion to ask user how to proceed
+  # Options: [1] Reindex now (Recommended), [2] Proceed with stale index, [3] Cancel
+fi
+```
+
+**AskUserQuestion Template:**
+
+```typescript
+AskUserQuestion({
+  questions: [{
+    question: `${STALE_COUNT} files have been modified since the last index (${INDEX_TIME}). The claudemem index may be outdated, which could cause missing or incorrect results. How would you like to proceed?`,
+    header: "Index Freshness Warning",
+    multiSelect: false,
+    options: [
+      {
+        label: "Reindex now (Recommended)",
+        description: "Run claudemem index to update. Takes ~1-2 minutes."
+      },
+      {
+        label: "Proceed with stale index",
+        description: "Continue investigation. May miss recent code changes."
+      },
+      {
+        label: "Cancel investigation",
+        description: "I'll handle this manually."
+      }
+    ]
+  }]
+})
+```
+
+---
+
+## Result Validation Guidelines
+
+### After Every Command
+
+1. **Check exit code** - Non-zero indicates failure
+2. **Check for empty results** - May need reindex or different query
+3. **Validate relevance** - Results should match query semantics
+
+### Validation Examples
+
+```bash
+# map validation
+RESULTS=$(claudemem --nologo map "authentication" --raw)
+EXIT_CODE=$?
+
+if [ "$EXIT_CODE" -ne 0 ]; then
+  echo "ERROR: claudemem command failed"
+  # Diagnose index health
+  DIAGNOSIS=$(claudemem --version && ls -la .claudemem/index.db 2>&1)
+  # Use AskUserQuestion
+fi
+
+if [ -z "$RESULTS" ]; then
+  echo "WARNING: No results found - may need reindex or different query"
+  # Use AskUserQuestion
+fi
+
+if ! echo "$RESULTS" | grep -qi "auth\|login\|user\|session"; then
+  echo "WARNING: Results may not be relevant to authentication query"
+  # Use AskUserQuestion
+fi
+
+# symbol validation
+RESULTS=$(claudemem --nologo symbol UserService --raw)
+if ! echo "$RESULTS" | grep -q "name: UserService"; then
+  echo "WARNING: UserService not found - check spelling or reindex"
+  # Use AskUserQuestion
+fi
+
+# search validation
+RESULTS=$(claudemem --nologo search "error handling" --raw)
+MATCH_COUNT=0
+for kw in error handling catch try; do
+  if echo "$RESULTS" | grep -qi "$kw"; then
+    MATCH_COUNT=$((MATCH_COUNT + 1))
+  fi
+done
+if [ "$MATCH_COUNT" -lt 2 ]; then
+  echo "WARNING: Results may not be relevant to error handling query"
+  # Use AskUserQuestion
+fi
+```
+
+---
+
+## FALLBACK PROTOCOL
+
+**CRITICAL: Never use grep/find/Glob without explicit user approval.**
+
+If claudemem fails or returns irrelevant results:
+
+1. **STOP** - Do not silently switch to grep/find
+2. **DIAGNOSE** - Run `claudemem status` to check index health
+3. **COMMUNICATE** - Tell user what happened
+4. **ASK** - Get explicit user permission via AskUserQuestion
+
+```typescript
+// Fallback AskUserQuestion Templates
+AskUserQuestion({
+  questions: [{
+    question: "claudemem [command] failed or returned no relevant results. How should I proceed?",
+    header: "Investigation Issue",
+    multiSelect: false,
+    options: [
+      { label: "Reindex codebase", description: "Run claudemem index (~1-2 min)" },
+      { label: "Try different query", description: "Rephrase the search" },
+      { label: "Use grep (not recommended)", description: "Traditional search - loses semantic understanding" },
+      { label: "Cancel", description: "Stop investigation" }
+    ]
+  }]
+})
+```
+
+**Grep Fallback Warning:**
+
+If user explicitly chooses grep fallback, display this warning:
+
+```markdown
+## WARNING: Using Fallback Search (grep)
+
+You have chosen to use grep as a fallback. Please understand the limitations:
+
+| Feature | claudemem | grep |
+|---------|-----------|------|
+| Semantic understanding | Yes | No |
+| Call graph analysis | Yes | No |
+| Symbol relationships | Yes | No |
+| PageRank ranking | Yes | No |
+| False positives | Low | High |
+
+**Recommendation:** After completing this task, run `claudemem index` to rebuild
+the index for future investigations.
+
+Proceeding with grep...
+```
+
+**See ultrathink-detective skill for complete Fallback Protocol documentation.**
 
 ---
 
@@ -1163,11 +1493,14 @@ Before completing a claudemem workflow, ensure:
 
 - [ ] claudemem CLI is installed (v0.3.0+)
 - [ ] Codebase is indexed (check with `claudemem status`)
+- [ ] **Checked index freshness** before starting ⭐NEW in v0.5.0
 - [ ] **Started with `map`** to understand structure ⭐CRITICAL
 - [ ] Used `--nologo --raw` for all commands
+- [ ] **Validated results after every command** ⭐NEW in v0.5.0
 - [ ] Checked `callers` before modifying any symbol
 - [ ] Focused on high-PageRank symbols first
 - [ ] Read only specific file:line ranges (not whole files)
+- [ ] **Never silently switched to grep** ⭐NEW in v0.5.0
 
 ---
 
@@ -1185,9 +1518,13 @@ Before completing a claudemem workflow, ensure:
 - **NEW in v0.3.0**: `--raw` output format for machine parsing
 - **NEW in v0.4.0**: `dead-code`, `test-gaps`, `impact` commands for code analysis
 - **NEW in v0.4.0**: BFS traversal for transitive caller analysis
+- **NEW in v0.7.0**: `docs` command for framework documentation fetching
+- **NEW in v0.7.0**: Context7, llms.txt, DevDocs documentation providers
+- **NEW in v0.7.0**: Unified search across code AND framework documentation
+- **NEW in v0.7.0**: Auto-detection of dependencies from package.json, requirements.txt, go.mod, Cargo.toml
 
 ---
 
 **Maintained by:** Jack Rudenko @ MadAppGang
-**Plugin:** code-analysis v2.6.0
-**Last Updated:** December 2025 (v0.4.0 features)
+**Plugin:** code-analysis v2.8.0
+**Last Updated:** December 2025 (v0.6.0 - Framework documentation support)

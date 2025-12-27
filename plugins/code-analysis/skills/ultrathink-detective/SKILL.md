@@ -30,7 +30,7 @@ model: opus
 
 # Ultrathink Detective Skill
 
-**Version:** 3.1.0
+**Version:** 3.3.0
 **Role:** Senior Principal Engineer / Tech Lead
 **Model:** Opus (for maximum reasoning depth)
 **Purpose:** Comprehensive multi-dimensional codebase investigation using ALL AST analysis commands with code health assessment
@@ -99,7 +99,78 @@ AskUserQuestion({
 ### Step 3: Check Index Status
 
 ```bash
-claudemem status
+# Check claudemem installation and index
+claudemem --version && ls -la .claudemem/index.db 2>/dev/null
+```
+
+### Step 3.5: Check Index Freshness
+
+Before proceeding with investigation, verify the index is current:
+
+```bash
+# First check if index exists
+if [ ! -d ".claudemem" ] || [ ! -f ".claudemem/index.db" ]; then
+  # Use AskUserQuestion to prompt for index creation
+  # Options: [1] Create index now (Recommended), [2] Cancel investigation
+  exit 1
+fi
+
+# Count files modified since last index
+STALE_COUNT=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) \
+  -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | grep -v "dist" | grep -v "build" | wc -l)
+STALE_COUNT=$((STALE_COUNT + 0))  # Normalize to integer
+
+if [ "$STALE_COUNT" -gt 0 ]; then
+  # Get index time with explicit platform detection
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    INDEX_TIME=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" .claudemem/index.db 2>/dev/null)
+  else
+    INDEX_TIME=$(stat -c "%y" .claudemem/index.db 2>/dev/null | cut -d'.' -f1)
+  fi
+  INDEX_TIME=${INDEX_TIME:-"unknown time"}
+
+  # Get sample of stale files
+  STALE_SAMPLE=$(find . -type f \( -name "*.ts" -o -name "*.tsx" \) \
+    -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | head -5)
+
+  # Use AskUserQuestion to ask user how to proceed
+  # Options: [1] Reindex now (Recommended), [2] Proceed with stale index, [3] Cancel
+fi
+```
+
+**AskUserQuestion Template for Stale Index:**
+
+```typescript
+AskUserQuestion({
+  questions: [{
+    question: `${STALE_COUNT} files have been modified since the last index (${INDEX_TIME}). The claudemem index may be outdated, which could cause missing or incorrect results. How would you like to proceed?`,
+    header: "Index Freshness Warning",
+    multiSelect: false,
+    options: [
+      {
+        label: "Reindex now (Recommended)",
+        description: `Run claudemem index to update. Takes ~1-2 minutes. Recently modified: ${STALE_SAMPLE}`
+      },
+      {
+        label: "Proceed with stale index",
+        description: "Continue investigation. May miss recent code changes."
+      },
+      {
+        label: "Cancel investigation",
+        description: "I'll handle this manually."
+      }
+    ]
+  }]
+})
+```
+
+**If user selects "Proceed with stale index"**, display warning banner in output:
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  WARNING: Index is stale (${STALE_COUNT} files modified since ${INDEX_TIME})  ║
+║  Results may not reflect recent code changes.                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
 ### Step 4: Index if Needed
@@ -489,6 +560,156 @@ Recommendation: Batch relation loading or use joins
 
 ---
 
+## Result Validation Pattern
+
+After EVERY claudemem command, validate results to ensure quality:
+
+### Validation Per Dimension
+
+Each dimension MUST validate its claudemem results before proceeding:
+
+**Dimension 1: Architecture (map)**
+
+```bash
+RESULTS=$(claudemem --nologo map --raw)
+EXIT_CODE=$?
+
+# Check for command failure
+if [ "$EXIT_CODE" -ne 0 ]; then
+  echo "ERROR: claudemem map failed"
+  # Diagnose and ask user (see Fallback Protocol below)
+  exit 1
+fi
+
+# Check for empty results
+if [ -z "$RESULTS" ]; then
+  echo "WARNING: No architectural symbols found - index may be empty"
+  # Ask user to reindex or cancel
+fi
+
+# Validate PageRank values present
+if ! echo "$RESULTS" | grep -q "pagerank:"; then
+  echo "WARNING: No PageRank data - index may be corrupted or outdated"
+  # Ask user to reindex
+fi
+```
+
+**Dimension 2-6: All Other Commands**
+
+```bash
+RESULTS=$(claudemem --nologo [command] [args] --raw)
+EXIT_CODE=$?
+
+# Check exit code
+if [ "$EXIT_CODE" -ne 0 ]; then
+  # Diagnose index health
+  DIAGNOSIS=$(claudemem --version && ls -la .claudemem/index.db 2>&1)
+  # Use AskUserQuestion for recovery options
+fi
+
+# Check for empty/irrelevant results
+# Extract keywords from the user's investigation query
+# Example: QUERY="how does auth work" → KEYWORDS="auth work authentication"
+# The orchestrating agent must populate KEYWORDS before this check
+MATCH_COUNT=0
+for kw in $KEYWORDS; do
+  if echo "$RESULTS" | grep -qi "$kw"; then
+    MATCH_COUNT=$((MATCH_COUNT + 1))
+  fi
+done
+
+if [ "$MATCH_COUNT" -eq 0 ]; then
+  # Results don't match query - potentially irrelevant
+  # Use AskUserQuestion (see Fallback Protocol)
+fi
+```
+
+**Dimension 3: Test Coverage (callers)**
+
+```bash
+RESULTS=$(claudemem --nologo callers $FUNCTION --raw)
+
+# Even 0 callers is valid - but validate it's not an error
+if echo "$RESULTS" | grep -qi "error\|not found"; then
+  # Actual error vs no callers
+  # Use AskUserQuestion
+fi
+```
+
+---
+
+## FALLBACK PROTOCOL
+
+**CRITICAL: Never use grep/find/Glob without explicit user approval.**
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║   FALLBACK PROTOCOL (NEVER SILENT)                                          ║
+║                                                                              ║
+║   If claudemem fails OR returns irrelevant results:                          ║
+║                                                                              ║
+║   1. STOP - Do not silently switch to grep/find                              ║
+║   2. DIAGNOSE - Run claudemem status to check index health                   ║
+║   3. COMMUNICATE - Tell user what happened                                   ║
+║   4. ASK - Get explicit user permission via AskUserQuestion                  ║
+║                                                                              ║
+║   grep/find/Glob ARE FORBIDDEN without explicit user approval                ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+### Fallback Decision Tree
+
+If claudemem fails or returns unexpected results:
+
+1. **STOP** - Do not silently switch tools
+2. **DIAGNOSE** - Run `claudemem status`
+3. **REPORT** - Tell user what happened
+4. **ASK** - Use AskUserQuestion for next steps
+
+```typescript
+// Fallback AskUserQuestion Template
+AskUserQuestion({
+  questions: [{
+    question: "claudemem [command] failed or returned irrelevant results. How should I proceed?",
+    header: "Investigation Issue",
+    multiSelect: false,
+    options: [
+      { label: "Reindex codebase", description: "Run claudemem index (~1-2 min)" },
+      { label: "Try different query", description: "Rephrase the search" },
+      { label: "Use grep (not recommended)", description: "Traditional search - loses semantic understanding" },
+      { label: "Cancel", description: "Stop investigation" }
+    ]
+  }]
+})
+```
+
+### Grep Fallback Warning
+
+If user explicitly chooses grep fallback, display this warning:
+
+```markdown
+## WARNING: Using Fallback Search (grep)
+
+You have chosen to use grep as a fallback. Please understand the limitations:
+
+| Feature | claudemem | grep |
+|---------|-----------|------|
+| Semantic understanding | Yes | No |
+| Call graph analysis | Yes | No |
+| Symbol relationships | Yes | No |
+| PageRank ranking | Yes | No |
+| False positives | Low | High |
+
+**Recommendation:** After completing this task, run `claudemem index` to rebuild
+the index for future investigations.
+
+Proceeding with grep...
+```
+
+---
+
 ## 🚫 FORBIDDEN: DO NOT USE
 
 ```bash
@@ -561,5 +782,5 @@ skills: code-analysis:ultrathink-detective
 ---
 
 **Maintained by:** MadAppGang
-**Plugin:** code-analysis v2.6.0
-**Last Updated:** December 2025 (v0.4.0 code health dimension)
+**Plugin:** code-analysis v2.7.0
+**Last Updated:** December 2025 (v3.3.0 - Cross-platform compatibility, inline templates, improved validation)

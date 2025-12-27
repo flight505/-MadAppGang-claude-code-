@@ -609,6 +609,89 @@ Use `--auto-approve` flag to prevent interactive prompts:
   # Waits for user to approve costs... but this is inside an agent!
 ```
 
+### PROXY_MODE-Enabled Agents Reference
+
+**CRITICAL**: Only these agents support PROXY_MODE. Using other agents (like `general-purpose`) will NOT work correctly.
+
+#### Supported Agents by Plugin
+
+**agentdev plugin (3 agents)**
+
+| Agent | subagent_type | Best For |
+|-------|---------------|----------|
+| `reviewer` | `agentdev:reviewer` | Implementation quality reviews |
+| `architect` | `agentdev:architect` | Design plan reviews |
+| `developer` | `agentdev:developer` | Implementation with external models |
+
+**frontend plugin (8 agents)**
+
+| Agent | subagent_type | Best For |
+|-------|---------------|----------|
+| `plan-reviewer` | `frontend:plan-reviewer` | Architecture plan validation |
+| `reviewer` | `frontend:reviewer` | Code reviews |
+| `architect` | `frontend:architect` | Architecture design |
+| `designer` | `frontend:designer` | Design reviews |
+| `developer` | `frontend:developer` | Full-stack implementation |
+| `ui-developer` | `frontend:ui-developer` | UI implementation reviews |
+| `css-developer` | `frontend:css-developer` | CSS architecture & styling |
+| `test-architect` | `frontend:test-architect` | Testing strategy & implementation |
+
+**seo plugin (5 agents)**
+
+| Agent | subagent_type | Best For |
+|-------|---------------|----------|
+| `editor` | `seo:editor` | SEO content reviews |
+| `writer` | `seo:writer` | Content generation |
+| `analyst` | `seo:analyst` | Analysis tasks |
+| `researcher` | `seo:researcher` | Research & data gathering |
+| `data-analyst` | `seo:data-analyst` | Data analysis & insights |
+
+**Total: 18 PROXY_MODE-enabled agents**
+
+#### How to Check if an Agent Supports PROXY_MODE
+
+Look for `<proxy_mode_support>` in the agent's definition file:
+
+```bash
+grep -l "proxy_mode_support" plugins/*/agents/*.md
+```
+
+#### Common Mistakes
+
+| ❌ WRONG | ✅ CORRECT | Why |
+|----------|-----------|-----|
+| `subagent_type: "general-purpose"` | `subagent_type: "agentdev:reviewer"` | general-purpose has no PROXY_MODE |
+| `subagent_type: "Explore"` | `subagent_type: "agentdev:architect"` | Explore is for exploration, not reviews |
+| Prompt: "Run claudish with model X" | Prompt: "PROXY_MODE: model-x\n\n[task]" | Don't tell agent to run claudish, use directive |
+
+#### Correct Pattern Example
+
+```typescript
+// ✅ CORRECT: Use PROXY_MODE-enabled agent with directive
+Task({
+  subagent_type: "agentdev:reviewer",
+  description: "Grok design review",
+  run_in_background: true,
+  prompt: `PROXY_MODE: x-ai/grok-code-fast-1
+
+Review the design plan at ai-docs/feature-design.md
+
+Focus on:
+1. Completeness
+2. Missing considerations
+3. Potential issues
+4. Implementation risks`
+})
+
+// ❌ WRONG: Using general-purpose and instructing to run claudish
+Task({
+  subagent_type: "general-purpose",
+  description: "Grok design review",
+  prompt: `Review using Grok via claudish:
+  npx claudish --model x-ai/grok-code-fast-1 ...`
+})
+```
+
 ---
 
 ### Pattern 4: Cost Estimation and Transparency

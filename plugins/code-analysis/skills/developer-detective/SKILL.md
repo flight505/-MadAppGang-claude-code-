@@ -26,7 +26,7 @@ allowed-tools: Bash, Task, Read, AskUserQuestion
 
 # Developer Detective Skill
 
-**Version:** 3.1.0
+**Version:** 3.3.0
 **Role:** Software Developer
 **Purpose:** Implementation investigation using AST callers/callees and impact analysis
 
@@ -138,6 +138,68 @@ fi
 # Get full picture: definition + callers + callees
 claudemem --nologo context complexFunction --raw
 ```
+
+## PHASE 0: MANDATORY SETUP
+
+### Step 1: Verify claudemem v0.3.0
+
+```bash
+which claudemem && claudemem --version
+# Must be 0.3.0+
+```
+
+### Step 2: If Not Installed → STOP
+
+Use AskUserQuestion (see ultrathink-detective for template)
+
+### Step 3: Check Index Status
+
+```bash
+# Check claudemem installation and index
+claudemem --version && ls -la .claudemem/index.db 2>/dev/null
+```
+
+### Step 3.5: Check Index Freshness
+
+Before proceeding with investigation, verify the index is current:
+
+```bash
+# First check if index exists
+if [ ! -d ".claudemem" ] || [ ! -f ".claudemem/index.db" ]; then
+  # Use AskUserQuestion to prompt for index creation
+  # Options: [1] Create index now (Recommended), [2] Cancel investigation
+  exit 1
+fi
+
+# Count files modified since last index
+STALE_COUNT=$(find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" \) \
+  -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | grep -v "dist" | grep -v "build" | wc -l)
+STALE_COUNT=$((STALE_COUNT + 0))  # Normalize to integer
+
+if [ "$STALE_COUNT" -gt 0 ]; then
+  # Get index time with explicit platform detection
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    INDEX_TIME=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" .claudemem/index.db 2>/dev/null)
+  else
+    INDEX_TIME=$(stat -c "%y" .claudemem/index.db 2>/dev/null | cut -d'.' -f1)
+  fi
+  INDEX_TIME=${INDEX_TIME:-"unknown time"}
+
+  # Get sample of stale files
+  STALE_SAMPLE=$(find . -type f \( -name "*.ts" -o -name "*.tsx" \) \
+    -newer .claudemem/index.db 2>/dev/null | grep -v "node_modules" | grep -v ".git" | head -5)
+
+  # Use AskUserQuestion (see template in ultrathink-detective)
+fi
+```
+
+### Step 4: Index if Needed
+
+```bash
+claudemem index
+```
+
+---
 
 ## Workflow: Implementation Investigation (v0.3.0)
 
@@ -271,6 +333,92 @@ claudemem --nologo callees targetModule --raw
 claudemem --nologo callers targetModule --raw
 ```
 
+## Result Validation Pattern
+
+After EVERY claudemem command, validate results:
+
+### Symbol/Callers Validation
+
+When tracing implementation:
+
+```bash
+# Find symbol
+SYMBOL=$(claudemem --nologo symbol PaymentService --raw)
+EXIT_CODE=$?
+
+if [ "$EXIT_CODE" -ne 0 ] || [ -z "$SYMBOL" ] || echo "$SYMBOL" | grep -qi "not found\|error"; then
+  # Symbol doesn't exist, typo, or index issue
+  # Diagnose index health
+  DIAGNOSIS=$(claudemem --version && ls -la .claudemem/index.db 2>&1)
+  # Use AskUserQuestion with suggestions:
+  # [1] Reindex, [2] Try different name, [3] Cancel
+fi
+
+# Check callers
+CALLERS=$(claudemem --nologo callers PaymentService --raw)
+# 0 callers is valid (entry point or unused)
+# But error message is not
+if echo "$CALLERS" | grep -qi "error\|failed"; then
+  # Use AskUserQuestion
+fi
+```
+
+### Empty/Irrelevant Results
+
+```bash
+RESULTS=$(claudemem --nologo callees FunctionName --raw)
+
+# Validate relevance
+# Extract keywords from the user's investigation query
+# Example: QUERY="how does auth work" → KEYWORDS="auth work authentication"
+# The orchestrating agent must populate KEYWORDS before this check
+MATCH_COUNT=0
+for kw in $KEYWORDS; do
+  if echo "$RESULTS" | grep -qi "$kw"; then
+    MATCH_COUNT=$((MATCH_COUNT + 1))
+  fi
+done
+
+if [ "$MATCH_COUNT" -eq 0 ]; then
+  # Results don't match expected dependencies
+  # Use AskUserQuestion: Reindex, Different query, or Cancel
+fi
+```
+
+---
+
+## FALLBACK PROTOCOL
+
+**CRITICAL: Never use grep/find/Glob without explicit user approval.**
+
+If claudemem fails or returns irrelevant results:
+
+1. **STOP** - Do not silently switch tools
+2. **DIAGNOSE** - Run `claudemem status`
+3. **REPORT** - Tell user what happened
+4. **ASK** - Use AskUserQuestion for next steps
+
+```typescript
+// Fallback options (in order of preference)
+AskUserQuestion({
+  questions: [{
+    question: "claudemem [command] failed or returned no relevant results. How should I proceed?",
+    header: "Investigation Issue",
+    multiSelect: false,
+    options: [
+      { label: "Reindex codebase", description: "Run claudemem index (~1-2 min)" },
+      { label: "Try different query", description: "Rephrase the search" },
+      { label: "Use grep (not recommended)", description: "Traditional search - loses call graph analysis" },
+      { label: "Cancel", description: "Stop investigation" }
+    ]
+  }]
+})
+```
+
+**See ultrathink-detective skill for complete Fallback Protocol documentation.**
+
+---
+
 ## Anti-Patterns
 
 | Anti-Pattern | Why Wrong | Correct Approach |
@@ -291,5 +439,5 @@ claudemem --nologo callers targetModule --raw
 ---
 
 **Maintained by:** MadAppGang
-**Plugin:** code-analysis v2.6.0
-**Last Updated:** December 2025 (v0.4.0 impact analysis support)
+**Plugin:** code-analysis v2.7.0
+**Last Updated:** December 2025 (v3.3.0 - Cross-platform compatibility, inline templates, improved validation)

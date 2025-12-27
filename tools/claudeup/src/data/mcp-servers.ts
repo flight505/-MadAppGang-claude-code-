@@ -389,26 +389,18 @@ export const curatedMcpServers: McpServer[] = [
     command: 'npx',
     args: ['-y', 'mcp-server-google-analytics'],
     env: {
-      GOOGLE_CLIENT_EMAIL: '${GOOGLE_CLIENT_EMAIL}',
-      GOOGLE_PRIVATE_KEY: '${GOOGLE_PRIVATE_KEY}',
+      GOOGLE_APPLICATION_CREDENTIALS: '${GOOGLE_APPLICATION_CREDENTIALS}',
       GA_PROPERTY_ID: '${GA_PROPERTY_ID}',
     },
     category: 'seo',
     requiresConfig: true,
     configFields: [
       {
-        name: 'GOOGLE_CLIENT_EMAIL',
-        label: 'Service Account Email',
-        type: 'string',
+        name: 'GOOGLE_APPLICATION_CREDENTIALS',
+        label: 'Service Account JSON Path',
+        type: 'path',
         required: true,
-        envVar: 'GOOGLE_CLIENT_EMAIL',
-      },
-      {
-        name: 'GOOGLE_PRIVATE_KEY',
-        label: 'Service Account Private Key',
-        type: 'string',
-        required: true,
-        envVar: 'GOOGLE_PRIVATE_KEY',
+        envVar: 'GOOGLE_APPLICATION_CREDENTIALS',
       },
       {
         name: 'GA_PROPERTY_ID',
@@ -449,9 +441,9 @@ export const curatedMcpServers: McpServer[] = [
   },
   {
     name: 'se-ranking',
-    description: 'SE Ranking - keyword rankings, backlinks, competitor analysis',
+    description: 'SE Ranking - keyword rankings, backlinks, competitor analysis (requires Docker)',
     command: 'docker',
-    args: ['run', '-i', '--rm', '-e', 'SERANKING_API_TOKEN', 'se-ranking/seo-data-api-mcp-server'],
+    args: ['run', '-i', '--rm', '-e', 'SERANKING_API_TOKEN=${SERANKING_API_TOKEN}', 'seranking/seo-data-api-mcp-server:latest'],
     env: {
       SERANKING_API_TOKEN: '${SERANKING_API_TOKEN}',
     },

@@ -124,8 +124,7 @@ allowed-tools: Bash, AskUserQuestion, Read, Write
 
       <steps>
         <step>Ask for GA4 Property ID (format: properties/123456789)</step>
-        <step>Ask for Service Account email</step>
-        <step>Ask for Private Key (or path to JSON file)</step>
+        <step>Ask for path to Service Account JSON file</step>
         <step>Test connection by fetching property metadata</step>
         <step>If success: Save credentials</step>
         <step>If failure: Display error, offer to retry</step>
@@ -141,13 +140,24 @@ allowed-tools: Bash, AskUserQuestion, Read, Write
         }
 
         # .claude/settings.local.json (gitignored - secrets)
+        # RECOMMENDED: Use file path reference (more secure, handles newlines correctly)
         {
           "env": {
-            "GOOGLE_CLIENT_EMAIL": "seo-agent@project.iam.gserviceaccount.com",
-            "GOOGLE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\n..."
+            "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/service-account.json"
           }
         }
+
+        # ALTERNATIVE: Use inline credentials (may have newline issues)
+        # {
+        #   "env": {
+        #     "GOOGLE_CLIENT_EMAIL": "seo-agent@project.iam.gserviceaccount.com",
+        #     "GOOGLE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"
+        #   }
+        # }
         ```
+
+        **Security Note:** File path references are recommended over inline private keys
+        because they avoid newline escaping issues and keep secrets in a separate file.
       </credential_storage>
     </phase>
 
@@ -221,7 +231,7 @@ allowed-tools: Bash, AskUserQuestion, Read, Write
       <test_connection>
         ```bash
         # Test SE Ranking API
-        curl -s -H "Authorization: Token ${SE_RANKING_API_KEY}" \
+        curl -s -H "Authorization: Token ${SERANKING_API_TOKEN}" \
           "https://api4.seranking.com/research/competitor/overview?domain=example.com"
         ```
       </test_connection>
@@ -238,7 +248,7 @@ allowed-tools: Bash, AskUserQuestion, Read, Write
         # .claude/settings.local.json (gitignored)
         {
           "env": {
-            "SE_RANKING_API_KEY": "your-api-key-here"
+            "SERANKING_API_TOKEN": "your-api-token-here"
           }
         }
         ```
