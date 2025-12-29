@@ -1,7 +1,7 @@
 {
 	"name": "code-analysis",
-	"version": "2.8.0",
-	"description": "Deep code investigation with claudemem v0.8.0. AST structural analysis with PageRank, callers/callees dependency tracing, full call chain context. NEW: Search feedback protocol - report helpful/unhelpful results for per-project learning. Framework documentation fetching. PreToolUse hooks intercept Grep/Bash/Glob/Read.",
+	"version": "2.8.1",
+	"description": "Deep code investigation with claudemem v0.8.0. AST structural analysis with PageRank, callers/callees dependency tracing. NEW: Auto-reindex on file changes (background, debounced). Search feedback protocol for per-project learning. Framework documentation fetching. Hooks intercept Grep/Bash/Glob/Read.",
 	"author": {
 		"name": "Jack Rudenko",
 		"email": "i@madappgang.com",
@@ -31,6 +31,17 @@
 					{
 						"type": "command",
 						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
+					}
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"matcher": "Write|Edit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/hooks/auto-reindex.sh"
 					}
 				]
 			}
